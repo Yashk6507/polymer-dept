@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Plastic Polymer Testing Department</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-content">
+            <div class="branding">
+                <div class="logo-placeholder">
+                    <img src="college-logo.png" alt="College Logo" class="college-logo">
+                </div>
+                <div class="header-text">
+                    <h1 class="dept-title">Plastic Polymer Testing Department</h1>
+                    <p class="dept-subtitle">Machine Complaint & Maintenance Portal</p>
+                </div>
+            </div>
+            <nav class="main-nav">
+                <a href="/dashboard" class="nav-link active">Dashboard</a>
+                <div id="notification-bell"></div>
+                <a href="#" id="logout-btn" class="nav-link">Logout</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <div class="container">
+            <div class="dashboard-header">
+                <div>
+                    <h2 class="dashboard-title">My Dashboard</h2>
+                    <p class="dashboard-subtitle" id="user-greeting">Welcome back!</p>
+                </div>
+                <div class="dashboard-actions">
+                    <button id="report-problem-btn" class="btn btn-primary">Report Problem</button>
+                    <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="dashboard-stat-card">
+                    <div class="stat-value" id="my-total">-</div>
+                    <div class="stat-label">My Complaints</div>
+                </div>
+                <div class="dashboard-stat-card warning">
+                    <div class="stat-value" id="my-pending">-</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="dashboard-stat-card success">
+                    <div class="stat-value" id="my-resolved">-</div>
+                    <div class="stat-label">Resolved</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">My Complaints</h3>
+                    <div>
+                        <select id="filter-status" class="form-control">
+                            <option value="">All Statuses</option>
+                            <option value="Submitted">Submitted</option>
+                            <option value="Under Review">Under Review</option>
+                            <option value="Verified">Verified</option>
+                            <option value="Assigned">Assigned</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="On Hold">On Hold</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="Closed">Closed</option>
+                            <option value="Reopened">Reopened</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Ticket ID</th>
+                                <th>Machine</th>
+                                <th>Location</th>
+                                <th>Problem</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="complaints-tbody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 2rem; color: #6b7280;">
+                                    Loading complaints...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Report Problem Modal -->
+    <div id="report-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Report a Problem</h3>
+                <button class="modal-close" id="close-modal">✕</button>
+            </div>
+            <form id="complaint-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Complaint Type *</label>
+                    <select id="complaint_type" name="complaint_type" required>
+                        <option value="">Select complaint type</option>
+                        <option value="Machine Related">Machine Related</option>
+                        <option value="Teacher Related">Teacher Related</option>
+                        <option value="Litter/Cleanliness">Litter/Cleanliness Related</option>
+                        <option value="System Failure">System Failure (Internet, Power, etc.)</option>
+                        <option value="Classroom Issue">Classroom Issue</option>
+                        <option value="Student Related">Student Related</option>
+                        <option value="Infrastructure">Infrastructure/Building Issue</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div id="machine-fields" class="hidden">
+                    <div class="form-group">
+                        <label for="machine_id">Machine *</label>
+                        <select id="machine_id" name="machine_id">
+                            <option value="">Select machine</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="location_id">Machine Location *</label>
+                        <select id="location_id" name="location_id">
+                            <option value="">Select location</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="general-location-field" class="hidden">
+                    <div class="form-group">
+                        <label for="general_location">Location/Area *</label>
+                        <input type="text" id="general_location" name="general_location" placeholder="e.g., Classroom 101, Cafeteria, Main Gate">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Problem Category *</label>
+                    <select id="category" name="category" required>
+                        <option value="">Select category</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="title">Problem Title *</label>
+                    <input type="text" id="title" name="title" required placeholder="Brief description of the problem">
+                </div>
+                <div class="form-group">
+                    <label for="description">Detailed Description *</label>
+                    <textarea id="description" name="description" rows="4" required placeholder="Describe the problem in detail..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="priority">Priority</label>
+                    <select id="priority" name="priority">
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                        <option value="Critical">Critical</option>
+                    </select>
+                    <small class="text-muted">Priority is automatically raised when the system detects safety or critical issues.</small>
+                </div>
+                <div class="form-group">
+                    <label for="images">Upload Photos (Optional, max 5)</label>
+                    <input type="file" id="images" name="images" accept="image/*" multiple>
+                </div>
+                <div class="form-group hidden" id="machine-unusable-field">
+                    <label>
+                        <input type="checkbox" id="machine_unusable" name="machine_unusable"> Machine is completely unusable
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Submit Complaint</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Complaint Details Modal -->
+    <div id="details-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Complaint Details</h3>
+                <button class="modal-close" id="close-details-modal">✕</button>
+            </div>
+            <div id="details-content"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-info">
+                <p>&copy; 2026 Plastic Polymer Testing Department</p>
+            </div>
+        </div>
+    </footer>
+
+    <div class="chatbot-trigger" id="chatbot-trigger">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/>
+        </svg>
+        <span>PPD Assistant</span>
+    </div>
+
+    <div class="chatbot-window hidden" id="chatbot-window">
+        <div class="chatbot-header">
+            <h3>PPD Assistant</h3>
+            <button class="chatbot-close" id="chatbot-close">✕</button>
+        </div>
+        <div class="chatbot-messages" id="chatbot-messages">
+            <div class="chatbot-message bot">
+                <p>Hello! I'm the PPD Assistant. How can I help you today?</p>
+                <div class="chatbot-suggestions">
+                    <button class="suggestion-btn" data-question="How do I submit a complaint?">How do I submit a complaint?</button>
+                    <button class="suggestion-btn" data-question="How can I track my complaint?">How can I track my complaint?</button>
+                    <button class="suggestion-btn" data-question="What information do I need?">What information do I need?</button>
+                </div>
+            </div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" id="chatbot-input-field" placeholder="Type your question...">
+            <button id="chatbot-send">Send</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+
+        if (!token || !userStr) {
+            window.location.href = '/login';
+        }
+
+        const user = JSON.parse(userStr);
+        document.getElementById('user-greeting').textContent = `Welcome back, ${user.name}!`;
+
+        async function loadComplaints() {
+            try {
+                const status = document.getElementById('filter-status').value;
+                const url = status ? `/api/complaints/my?status=${encodeURIComponent(status)}` : '/api/complaints/my';
+
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    app.showToast(data.message || 'Could not load complaints', 'error');
+                    return;
+                }
+
+                const tbody = document.getElementById('complaints-tbody');
+
+                if (data.complaints.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No complaints found.</td></tr>';
+                } else {
+                    tbody.innerHTML = data.complaints.map(c => `
+                        <tr>
+                            <td><strong>${app.escapeHtml(c.ticket_number)}</strong></td>
+                            <td>
+                                ${app.escapeHtml(c.machine_name || 'N/A')}
+                                <span class="task-meta">${app.escapeHtml(c.complaint_type)}</span>
+                            </td>
+                            <td>${app.escapeHtml(c.location_display)}</td>
+                            <td>${app.escapeHtml(c.title)}</td>
+                            <td><span class="${app.getPriorityBadgeClass(c.priority)}">${app.escapeHtml(c.priority)}</span></td>
+                            <td><span class="${app.getStatusBadgeClass(c.status)}">${app.escapeHtml(c.status)}</span></td>
+                            <td>${app.formatDate(c.submitted_at)}</td>
+                            <td><button class="btn btn-small btn-secondary" onclick="window.viewDetails(${c.id})">View</button></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading complaints:', error);
+                app.showToast('Could not load complaints', 'error');
+            }
+        }
+
+        async function loadMyStats() {
+            try {
+                const response = await fetch('/api/dashboard/statistics', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.success && data.userStats) {
+                    document.getElementById('my-total').textContent = data.userStats.my_complaints;
+                    document.getElementById('my-pending').textContent = data.userStats.my_pending;
+                    document.getElementById('my-resolved').textContent = data.userStats.my_resolved;
+                }
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        async function loadMachines() {
+            try {
+                const response = await fetch('/api/machines', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const select = document.getElementById('machine_id');
+                    select.innerHTML = '<option value="">Select machine</option>' +
+                        data.machines.map(m => `<option value="${m.id}">${m.machine_name} (${m.machine_code})</option>`).join('');
+                }
+            } catch (error) {
+                console.error('Error loading machines:', error);
+            }
+        }
+
+        async function loadLocations() {
+            try {
+                const response = await fetch('/api/machines/locations', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const select = document.getElementById('location_id');
+                    select.innerHTML = '<option value="">Select location</option>' +
+                        data.locations.map(l => `<option value="${l.id}">${l.hall} - Room ${l.room_number}</option>`).join('');
+                }
+            } catch (error) {
+                console.error('Error loading locations:', error);
+            }
+        }
+
+        async function viewDetails(complaintId) {
+            try {
+                const response = await fetch(`/api/complaints/${complaintId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    app.showToast(data.message || 'Could not load complaint', 'error');
+                    return;
+                }
+
+                const c = data.complaint;
+                const content = document.getElementById('details-content');
+                content.innerHTML = `
+                    <div style="display: grid; gap: 1rem;">
+                        <div><strong>Ticket ID:</strong> ${app.escapeHtml(c.ticket_number)}</div>
+                        <div><strong>Type:</strong> ${app.escapeHtml(c.complaint_type)}</div>
+                        ${c.machine_name ? `<div><strong>Machine:</strong> ${app.escapeHtml(c.machine_name)} (${app.escapeHtml(c.machine_code)})</div>` : ''}
+                        <div><strong>Location:</strong> ${app.escapeHtml(c.location_display)}</div>
+                        <div><strong>Category:</strong> ${app.escapeHtml(c.category)}</div>
+                        <div><strong>Status:</strong> <span class="${app.getStatusBadgeClass(c.status)}">${app.escapeHtml(c.status)}</span></div>
+                        <div><strong>Priority:</strong> <span class="${app.getPriorityBadgeClass(c.priority)}">${app.escapeHtml(c.priority)}</span>${c.priority_auto_adjusted ? ' <small class="text-muted">(auto-raised by system)</small>' : ''}</div>
+                        ${data.assignment ? `<div><strong>Assigned to:</strong> ${app.escapeHtml(data.assignment.assigned_to_name || 'Unassigned')}${data.assignment.due_date ? ` — due ${app.formatDate(data.assignment.due_date)}` : ''}</div>` : ''}
+                        <div><strong>Description:</strong><br>${app.escapeHtml(c.description)}</div>
+                        ${data.images.length > 0 ? `<div><strong>Photos:</strong><br>${data.images.map(img => `<img src="${app.escapeHtml(img.image_url)}" style="max-width: 200px; margin: 5px; border-radius: 8px;">`).join('')}</div>` : ''}
+                        <div><strong>Submitted:</strong> ${app.formatDate(c.submitted_at)}</div>
+                        ${data.updates.length > 0 ? `<div><strong>Updates:</strong><br>${data.updates.map(u => `<div style="padding: 0.5rem; background: #f3f4f6; margin: 0.5rem 0; border-radius: 6px;"><small>${app.formatDate(u.created_at)} — ${app.escapeHtml(u.user_name)}</small><br><strong>${app.escapeHtml(u.new_status)}</strong> - ${app.escapeHtml(u.comment)}</div>`).join('')}</div>` : ''}
+                    </div>
+                `;
+                document.getElementById('details-modal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading details:', error);
+                app.showToast('Could not load complaint details', 'error');
+            }
+        }
+
+        // Make viewDetails globally accessible
+        window.viewDetails = viewDetails;
+
+        document.getElementById('report-problem-btn').addEventListener('click', () => {
+            document.getElementById('report-modal').classList.remove('hidden');
+            loadMachines();
+            loadLocations();
+        });
+
+        // Handle complaint type change
+        document.getElementById('complaint_type').addEventListener('change', function() {
+            const complaintType = this.value;
+            const machineFields = document.getElementById('machine-fields');
+            const generalLocationField = document.getElementById('general-location-field');
+            const machineUnusableField = document.getElementById('machine-unusable-field');
+            const categorySelect = document.getElementById('category');
+            const machineIdSelect = document.getElementById('machine_id');
+            const locationIdSelect = document.getElementById('location_id');
+            const generalLocationInput = document.getElementById('general_location');
+
+            // Reset required attributes
+            machineIdSelect.removeAttribute('required');
+            locationIdSelect.removeAttribute('required');
+            generalLocationInput.removeAttribute('required');
+
+            if (complaintType === 'Machine Related') {
+                // Show machine fields
+                machineFields.classList.remove('hidden');
+                generalLocationField.classList.add('hidden');
+                machineUnusableField.classList.remove('hidden');
+                machineIdSelect.setAttribute('required', 'required');
+                locationIdSelect.setAttribute('required', 'required');
+
+                // Machine-related categories
+                categorySelect.innerHTML = `
+                    <option value="">Select category</option>
+                    <option value="Machine malfunction">Machine malfunction</option>
+                    <option value="Mechanical defect">Mechanical defect</option>
+                    <option value="Electrical problem">Electrical problem</option>
+                    <option value="Software/control problem">Software/control problem</option>
+                    <option value="Calibration issue">Calibration issue</option>
+                    <option value="Testing failure">Testing failure</option>
+                    <option value="Safety issue">Safety issue</option>
+                    <option value="Maintenance required">Maintenance required</option>
+                    <option value="Other">Other</option>
+                `;
+            } else if (complaintType === 'Teacher Related') {
+                machineFields.classList.add('hidden');
+                generalLocationField.classList.remove('hidden');
+                machineUnusableField.classList.add('hidden');
+                generalLocationInput.setAttribute('required', 'required');
+
+                categorySelect.innerHTML = `
+                    <option value="">Select category</option>
+                    <option value="Teaching method issue">Teaching method issue</option>
+                    <option value="Attendance problem">Attendance problem</option>
+                    <option value="Grade/marks concern">Grade/marks concern</option>
+                    <option value="Behavior issue">Behavior issue</option>
+                    <option value="Communication problem">Communication problem</option>
+                    <option value="Other">Other</option>
+                `;
+            } else if (complaintType === 'Litter/Cleanliness') {
+                machineFields.classList.add('hidden');
+                generalLocationField.classList.remove('hidden');
+                machineUnusableField.classList.add('hidden');
+                generalLocationInput.setAttribute('required', 'required');
+
+                categorySelect.innerHTML = `
+                    <option value="">Select category</option>
+                    <option value="Unclean classroom">Unclean classroom</option>
+                    <option value="Unclean restroom">Unclean restroom</option>
+                    <option value="Garbage not collected">Garbage not collected</option>
+                    <option value="Litter in corridor">Litter in corridor/hallway</option>
+                    <option value="Pest problem">Pest problem</option>
+                    <option value="Other">Other</option>
+                `;
+            } else if (complaintType === 'System Failure') {
+                machineFields.classList.add('hidden');
+                generalLocationField.classList.remove('hidden');
+                machineUnusableField.classList.add('hidden');
+                generalLocationInput.setAttribute('required', 'required');
+
+                categorySelect.innerHTML = `
+                    <option value="">Select category</option>
+                    <option value="Internet/WiFi down">Internet/WiFi down</option>
+                    <option value="Power outage">Power outage</option>
+                    <option value="AC/Heating issue">AC/Heating issue</option>
+                    <option value="Water supply issue">Water supply issue</option>
+                    <option value="Computer system failure">Computer system failure</option>
+                    <option value="Projector/AV equipment">Projector/AV equipment issue</option>
+                    <option value="Other">Other</option>
+                `;
+            } else if (complaintType === 'Classroom Issue') {
+                machineFields.classList.add('hidden');
+                generalLocationField.classList.remove('hidden');
+                machineUnusableField.classList.add('hidden');
+                generalLocationInput.setAttribute('required', 'required');
+
+                categorySelect.innerHTML = `
+                    <option value="">Select category</option>
+                    <option value="Broken furniture">Broken furniture</option>
+                    <option value="Damaged board/whiteboard">Damaged board/whiteboard</option>
+                    <option value="Insufficient seating">Insufficient seating</option>
+                    <option value="Door/window issue">Door/window issue</option>
+                    <option value="Lighting problem">Lighting problem</option>
+                    <option value="Other">Other</option>
+                `;
+            } else if (complaintType === 'Student Related') {
+                machineFields.classList.add('hidden');
+                generalLocationField.classList.remove('hidden');
+                machineUnusableField.classList.add('hidden');
+                generalLocationInput.setAttribute('required', 'required');
+
+                categorySelect.innerHTML = `
+                    <option value="">Select category</option>
+                    <option value="Bullying/harassment">Bullying/harassment</option>
+                    <option value="Discipline issue">Discipline issue</option>
+                    <option value="Safety concern">Safety concern</option>
+                    <option value="Conflict resolution">Conflict resolution</option>
+                    <option value="Other">Other</option>
+                `;
+            } else if (complaintType === 'Infrastructure') {
+                machineFields.classList.add('hidden');
+                generalLocationField.classList.remove('hidden');
+                machineUnusableField.classList.add('hidden');
+                generalLocationInput.setAttribute('required', 'required');
+
+                categorySelect.innerHTML = `
+                    <option value="">Select category</option>
+                    <option value="Building maintenance">Building maintenance</option>
+                    <option value="Plumbing issue">Plumbing issue</option>
+                    <option value="Structural damage">Structural damage</option>
+                    <option value="Safety hazard">Safety hazard</option>
+                    <option value="Parking issue">Parking issue</option>
+                    <option value="Other">Other</option>
+                `;
+            } else if (complaintType === 'Other') {
+                machineFields.classList.add('hidden');
+                generalLocationField.classList.remove('hidden');
+                machineUnusableField.classList.add('hidden');
+                generalLocationInput.setAttribute('required', 'required');
+
+                categorySelect.innerHTML = `
+                    <option value="">Select category</option>
+                    <option value="General complaint">General complaint</option>
+                    <option value="Suggestion">Suggestion/Feedback</option>
+                    <option value="Other">Other</option>
+                `;
+            } else {
+                machineFields.classList.add('hidden');
+                generalLocationField.classList.add('hidden');
+                machineUnusableField.classList.add('hidden');
+                categorySelect.innerHTML = '<option value="">Select complaint type first</option>';
+            }
+        });
+
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('report-modal').classList.add('hidden');
+        });
+
+        document.getElementById('close-details-modal').addEventListener('click', () => {
+            document.getElementById('details-modal').classList.add('hidden');
+        });
+
+        document.getElementById('complaint-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+
+            try {
+                const response = await fetch('/api/complaints', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    app.showToast(`Complaint submitted. Ticket ID: ${data.complaint.ticket_number}`, 'success');
+                    document.getElementById('report-modal').classList.add('hidden');
+                    e.target.reset();
+                    resetComplaintForm();
+                    loadComplaints();
+                    loadMyStats();
+                    app.initNotificationBell();
+                } else {
+                    app.showToast(data.message || 'Failed to submit complaint', 'error');
+                }
+            } catch (error) {
+                app.showToast('Error submitting complaint. Please try again.', 'error');
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        });
+
+        document.getElementById('filter-status').addEventListener('change', loadComplaints);
+
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            loadComplaints();
+            loadMyStats();
+        });
+
+        function resetComplaintForm() {
+            document.getElementById('machine-fields').classList.add('hidden');
+            document.getElementById('general-location-field').classList.add('hidden');
+            document.getElementById('machine-unusable-field').classList.add('hidden');
+            document.getElementById('category').innerHTML = '<option value="">Select complaint type first</option>';
+        }
+
+        loadComplaints();
+        loadMyStats();
+        app.initNotificationBell();
+    </script>
+</body>
+</html>

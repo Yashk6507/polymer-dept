@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Plastic Polymer Testing Department</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-content">
+            <div class="branding">
+                <div class="logo-placeholder">
+                    <img src="college-logo.png" alt="College Logo" class="college-logo">
+                </div>
+                <div class="header-text">
+                    <h1 class="dept-title">Plastic Polymer Testing Department</h1>
+                    <p class="dept-subtitle">Machine Complaint & Maintenance Portal</p>
+                </div>
+            </div>
+            <nav class="main-nav">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/login" class="nav-link active">Login</a>
+                <a href="/register" class="nav-link">Register</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="auth-page">
+        <div class="container">
+            <div class="auth-card">
+                <h2>Login to Your Account</h2>
+                <p class="auth-subtitle">Access your dashboard to submit and track complaints</p>
+
+                <form id="login-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required placeholder="your.email@college.edu">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required placeholder="Enter your password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Login</button>
+
+                    <div class="form-footer">
+                        <p>Don't have an account? <a href="/register">Register here</a></p>
+                    </div>
+
+                    <div class="demo-credentials">
+                        <p><strong>Demo Credentials:</strong></p>
+                        <p>HOD: hod@polymer.edu / Admin@123</p>
+                        <p>Student: amit.patel@student.edu / Password123</p>
+                    </div>
+                </form>
+
+                <div id="error-message" class="error-message hidden"></div>
+                <div id="success-message" class="success-message hidden"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-info">
+                <p>&copy; 2026 Plastic Polymer Testing Department</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const errorMsg = document.getElementById('error-message');
+            const successMsg = document.getElementById('success-message');
+
+            errorMsg.classList.add('hidden');
+            successMsg.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+
+                    successMsg.textContent = 'Login successful! Redirecting...';
+                    successMsg.classList.remove('hidden');
+
+                    setTimeout(() => {
+                        if (['hod', 'admin'].includes(data.user.role)) {
+                            window.location.href = '/admin';
+                        } else if (['staff', 'technician', 'worker', 'faculty', 'teacher'].includes(data.user.role)) {
+                            window.location.href = '/staff';
+                        } else {
+                            window.location.href = '/dashboard';
+                        }
+                    }, 1000);
+                } else {
+                    errorMsg.textContent = data.message || 'Login failed';
+                    errorMsg.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorMsg.textContent = 'Connection error. Please try again.';
+                errorMsg.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

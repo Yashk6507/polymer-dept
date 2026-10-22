@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Plastic Polymer Testing Department</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-content">
+            <div class="branding">
+                <div class="logo-placeholder">
+                    <img src="college-logo.png" alt="College Logo" class="college-logo">
+                </div>
+                <div class="header-text">
+                    <h1 class="dept-title">Plastic Polymer Testing Department</h1>
+                    <p class="dept-subtitle">Admin Dashboard</p>
+                </div>
+            </div>
+            <nav class="main-nav">
+                <a href="/admin" class="nav-link active">Admin</a>
+                <div id="notification-bell"></div>
+                <a href="#" id="logout-btn" class="nav-link">Logout</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <div class="container">
+            <div class="dashboard-header">
+                <div>
+                    <h2 class="dashboard-title">HOD/Admin Dashboard</h2>
+                    <p class="dashboard-subtitle" id="admin-greeting">Welcome, Administrator</p>
+                </div>
+                <div class="dashboard-actions">
+                    <button id="edit-profile-btn" class="btn btn-secondary">Signing Name</button>
+                    <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
+                </div>
+            </div>
+
+            <div class="tabs" id="admin-tabs">
+                <button class="tab-btn active" data-tab="staff">Staff</button>
+                <button class="tab-btn" data-tab="complaints">Complaints</button>
+                <button class="tab-btn" data-tab="analytics">Analytics</button>
+            </div>
+
+            <!-- ============ Complaints tab ============ -->
+            <div class="tab-panel hidden" id="tab-complaints">
+
+            <div class="stats-grid">
+                <div class="dashboard-stat-card">
+                    <div class="stat-value" id="total-complaints">-</div>
+                    <div class="stat-label">Total Complaints</div>
+                </div>
+                <div class="dashboard-stat-card warning">
+                    <div class="stat-value" id="pending-complaints">-</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="dashboard-stat-card danger">
+                    <div class="stat-value" id="high-priority">-</div>
+                    <div class="stat-label">High Priority</div>
+                </div>
+                <div class="dashboard-stat-card success">
+                    <div class="stat-value" id="resolved-complaints">-</div>
+                    <div class="stat-label">Resolved</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">All Complaints</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <button id="ai-priority-btn" class="btn btn-primary btn-small">🤖 AI Priority View</button>
+                        <button id="normal-view-btn" class="btn btn-secondary btn-small hidden">📋 Normal View</button>
+                        <select id="filter-status" class="form-control">
+                            <option value="">All Statuses</option>
+                            <option value="Submitted">Submitted</option>
+                            <option value="Under Review">Under Review</option>
+                            <option value="Verified">Verified</option>
+                            <option value="Assigned">Assigned</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="On Hold">On Hold</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="Closed">Closed</option>
+                            <option value="Reopened">Reopened</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="ai-priority-banner" class="hidden" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 2rem;">🤖</div>
+                    <div>
+                        <strong style="font-size: 1.1rem;">AI-Powered Priority Analysis Active</strong>
+                        <p style="margin: 0.25rem 0 0 0; opacity: 0.95;">Complaints are automatically analyzed and prioritized based on safety concerns, machine criticality, production impact, and technical severity.</p>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Ticket ID</th>
+                                <th>Reporter</th>
+                                <th>Machine</th>
+                                <th>Location</th>
+                                <th>Priority</th>
+                                <th id="ai-score-header" class="hidden">AI Score</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="complaints-tbody">
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 2rem;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            </div><!-- /tab-complaints -->
+
+            <!-- ============ Staff tab ============ -->
+            <div class="tab-panel" id="tab-staff">
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Notification Gateways</h3>
+                        <button type="button" class="btn btn-small btn-secondary" id="gateway-recheck-btn">Re-check now</button>
+                    </div>
+                    <div id="gateway-banner" class="gateway-banner">
+                        <span class="text-muted">Checking notification gateways…</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Notification Outbox</h3>
+                        <button type="button" class="btn btn-small btn-secondary" id="outbox-retry-btn">Retry undelivered</button>
+                    </div>
+                    <div class="analytics-grid" id="outbox-summary"></div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>When</th>
+                                    <th>Recipient</th>
+                                    <th>Contact used</th>
+                                    <th>Subject</th>
+                                    <th>Delivery</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="outbox-tbody">
+                                <tr><td colspan="6" style="text-align: center; padding: 2rem;">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title" id="staff-form-title">Add Staff Member</h3>
+                        <span class="text-muted">Fill in the name, email and phone number of the department staff member. Task alerts are sent to this phone number and email address.</span>
+                    </div>
+                    <form id="staff-form" class="staff-form-grid">
+                        <input type="hidden" id="staff-edit-id">
+                        <div class="form-group">
+                            <label for="staff-name">Full Name</label>
+                            <input type="text" id="staff-name" class="form-control" placeholder="e.g. Suresh Nair" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="staff-email">Email</label>
+                            <input type="email" id="staff-email" class="form-control" placeholder="name@polymer.edu" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="staff-phone">Phone Number</label>
+                            <input type="tel" id="staff-phone" class="form-control" placeholder="10-digit mobile number" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="staff-role">Role</label>
+                            <select id="staff-role" class="form-control">
+                                <option value="technician">Technician</option>
+                                <option value="staff">Staff</option>
+                                <option value="worker">Worker</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="faculty">Faculty</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="staff-user-id">Staff ID (optional)</label>
+                            <input type="text" id="staff-user-id" class="form-control" placeholder="e.g. TECH101">
+                        </div>
+                        <div class="form-group">
+                            <label for="staff-password">Temporary Password</label>
+                            <input type="text" id="staff-password" class="form-control" placeholder="Min. 6 characters">
+                        </div>
+                        <div class="form-group" style="display: flex; align-items: flex-end; gap: 0.75rem;">
+                            <button type="submit" class="btn btn-primary" id="staff-submit-btn">Add Staff Member</button>
+                            <button type="button" class="btn btn-secondary hidden" id="staff-cancel-btn">Cancel Edit</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Change an Account's Role</h3>
+                        <span class="text-muted">Use this for somebody who registered themselves. A student appears here so they can be turned into a teacher, staff member, worker or technician — which makes them selectable in "Assign to Staff" and gives them a task queue.</span>
+                    </div>
+                    <form id="role-form" class="staff-form-grid">
+                        <div class="form-group">
+                            <label for="role-account">Account</label>
+                            <select id="role-account" class="form-control" required>
+                                <option value="">Select an account</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="role-new">New Role</label>
+                            <select id="role-new" class="form-control">
+                                <option value="teacher">Teacher</option>
+                                <option value="staff">Staff</option>
+                                <option value="worker">Worker</option>
+                                <option value="technician">Technician</option>
+                                <option value="faculty">Faculty</option>
+                                <option value="student">Student (reporter only)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display: flex; align-items: flex-end; gap: 0.75rem;">
+                            <button type="submit" class="btn btn-primary">Update Role</button>
+                            <button type="button" class="btn btn-secondary" id="reload-accounts-btn">Reload Accounts</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Department Staff</h3>
+                        <button class="btn btn-secondary btn-small" id="reload-staff-btn">Reload</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email / Phone</th>
+                                    <th>Role</th>
+                                    <th>Staff ID</th>
+                                    <th>Type of Work Assigned</th>
+                                    <th>Open</th>
+                                    <th>Completed</th>
+                                    <th>Alerts Sent</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-tbody">
+                                <tr><td colspan="9" style="text-align: center; padding: 2rem;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card hidden" id="staff-profile-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Staff Profile</h3>
+                        <button class="btn btn-secondary btn-small" id="close-profile-btn">Close</button>
+                    </div>
+                    <div id="staff-profile-content"></div>
+                </div>
+
+            </div><!-- /tab-staff -->
+
+            <!-- ============ Analytics tab ============ -->
+            <div class="tab-panel hidden" id="tab-analytics">
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Complaint Analytics</h3>
+                        <div class="period-switch" id="period-switch">
+                            <button data-period="weekly">Weekly</button>
+                            <button data-period="monthly" class="active">Monthly</button>
+                            <button data-period="yearly">Yearly</button>
+                        </div>
+                    </div>
+                    <p class="text-muted" id="analytics-window">Loading...</p>
+                    <div class="analytics-grid" id="analytics-tiles"></div>
+                    <div class="chart-legend">
+                        <span class="k-resolved">Resolved / Closed</span>
+                        <span class="k-pending">Pending</span>
+                    </div>
+                    <div class="chart" id="analytics-chart"></div>
+                </div>
+
+                <div class="two-col">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">By Status</h3></div>
+                        <div class="breakdown-list" id="bd-status"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">By Priority</h3></div>
+                        <div class="breakdown-list" id="bd-priority"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">By Complaint Type</h3></div>
+                        <div class="breakdown-list" id="bd-type"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">By Category</h3></div>
+                        <div class="breakdown-list" id="bd-category"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Most Affected Machines</h3></div>
+                        <div class="breakdown-list" id="bd-machines"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Staff Workload</h3></div>
+                        <div class="breakdown-list" id="bd-workload"></div>
+                    </div>
+                </div>
+
+            </div><!-- /tab-analytics -->
+        </div>
+    </main>
+
+    <!-- Complaint Management Modal -->
+    <div id="manage-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3>Manage Complaint</h3>
+                <button class="modal-close" id="close-manage-modal">✕</button>
+            </div>
+            <div id="manage-content"></div>
+        </div>
+    </div>
+
+    <!-- Signing Name Modal -->
+    <div id="profile-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>Your Name on Alerts</h3>
+                <button class="modal-close" id="close-profile-modal">✕</button>
+            </div>
+            <form id="profile-form">
+                <div class="form-group">
+                    <label for="profile-name">Full name</label>
+                    <input type="text" id="profile-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="profile-phone">Phone number (optional)</label>
+                    <input type="text" id="profile-phone">
+                </div>
+                <p class="text-muted">This name signs every assignment email and notification you send.</p>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-info">
+                <p>&copy; 2026 Plastic Polymer Testing Department - Admin Portal</p>
+            </div>
+        </div>
+    </footer>
+
+    <div class="chatbot-trigger" id="chatbot-trigger">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/>
+        </svg>
+        <span>PPD Assistant</span>
+    </div>
+
+    <div class="chatbot-window hidden" id="chatbot-window">
+        <div class="chatbot-header">
+            <h3>PPD Assistant</h3>
+            <button class="chatbot-close" id="chatbot-close">✕</button>
+        </div>
+        <div class="chatbot-messages" id="chatbot-messages">
+            <div class="chatbot-message bot">
+                <p>Hello Admin! How can I help you today?</p>
+            </div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" id="chatbot-input-field" placeholder="Type your question...">
+            <button id="chatbot-send">Send</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+
+        if (!token || !userStr) {
+            window.location.href = '/login';
+        }
+
+        const user = JSON.parse(userStr);
+
+        if (!['hod', 'admin', 'faculty'].includes(user.role)) {
+            alert('Access denied. Admin privileges required.');
+            window.location.href = '/dashboard';
+        }
+
+        document.getElementById('admin-greeting').textContent = `Welcome, ${user.name}`;
+
+        let isAiPriorityView = false;
+
+        async function loadStatistics() {
+            try {
+                const response = await fetch('/api/dashboard/statistics', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.statistics;
+                    document.getElementById('total-complaints').textContent = stats.total_complaints;
+                    document.getElementById('pending-complaints').textContent =
+                        stats.submitted + stats.under_review + stats.verified + stats.assigned + stats.in_progress;
+                    document.getElementById('high-priority').textContent = stats.high_priority;
+                    document.getElementById('resolved-complaints').textContent = stats.resolved + stats.closed;
+                }
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        async function loadComplaints() {
+            try {
+                const response = await fetch('/api/complaints', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    app.showToast(data.message || 'Could not load complaints', 'error');
+                    return;
+                }
+                displayComplaints(data.complaints);
+            } catch (error) {
+                console.error('Error loading complaints:', error);
+                app.showToast('Could not load complaints', 'error');
+            }
+        }
+
+        async function loadAiPrioritizedComplaints() {
+            try {
+                const response = await fetch('/api/admin/complaints/prioritized', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    app.showToast(data.message || 'Could not load prioritized complaints', 'error');
+                    return;
+                }
+                displayComplaints(data.complaints, true);
+            } catch (error) {
+                console.error('Error loading AI prioritized complaints:', error);
+                app.showToast('Could not load prioritized complaints', 'error');
+            }
+        }
+
+        function reloadCurrentView() {
+            isAiPriorityView ? loadAiPrioritizedComplaints() : loadComplaints();
+            loadStatistics();
+        }
+
+        function displayComplaints(complaints, isAiView = false) {
+            const tbody = document.getElementById('complaints-tbody');
+            const statusFilter = document.getElementById('filter-status').value;
+
+            const visible = statusFilter
+                ? complaints.filter((c) => c.status === statusFilter)
+                : complaints;
+
+            if (visible.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${isAiView ? 9 : 8}" style="text-align: center; padding: 2rem;">No complaints found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = visible.map(c => {
+                let priorityBadge = `<span class="${app.getPriorityBadgeClass(c.priority)}">${app.escapeHtml(c.priority)}</span>`;
+
+                if (c.priority_auto_adjusted) {
+                    priorityBadge += ' <span style="font-size: 0.75rem; color: #3b82f6;">AI</span>';
+                }
+
+                let aiScoreCell = '';
+                if (isAiView) {
+                    const score = c.ai_confidence_score || 0;
+                    const scoreColor = score >= 60 ? '#ef4444' :
+                                     score >= 40 ? '#f59e0b' :
+                                     score >= 20 ? '#3b82f6' : '#6b7280';
+                    aiScoreCell = `<td><span style="font-weight: 700; color: ${scoreColor}; font-size: 1.1rem;">${score}</span> <span class="text-muted">/100</span></td>`;
+                }
+
+                return `
+                    <tr style="${c.priority === 'Critical' ? 'background: #fef2f2;' : ''}">
+                        <td><strong>${app.escapeHtml(c.ticket_number)}</strong></td>
+                        <td>${app.escapeHtml(c.reporter_name)}</td>
+                        <td>
+                            ${app.escapeHtml(c.machine_name || 'N/A')}
+                            <span class="task-meta">${app.escapeHtml(c.complaint_type)}</span>
+                        </td>
+                        <td>${app.escapeHtml(c.location_display)}</td>
+                        <td>${priorityBadge}</td>
+                        ${aiScoreCell}
+                        <td><span class="${app.getStatusBadgeClass(c.status)}">${app.escapeHtml(c.status)}</span></td>
+                        <td>${app.formatDate(c.submitted_at)}</td>
+                        <td><button class="btn btn-small btn-primary" onclick="window.manageComplaint(${c.id})">Manage</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('ai-priority-btn').addEventListener('click', () => {
+            isAiPriorityView = true;
+            document.getElementById('ai-priority-btn').classList.add('hidden');
+            document.getElementById('normal-view-btn').classList.remove('hidden');
+            document.getElementById('ai-priority-banner').classList.remove('hidden');
+            document.getElementById('ai-score-header').classList.remove('hidden');
+            loadAiPrioritizedComplaints();
+        });
+
+        document.getElementById('normal-view-btn').addEventListener('click', () => {
+            isAiPriorityView = false;
+            document.getElementById('ai-priority-btn').classList.remove('hidden');
+            document.getElementById('normal-view-btn').classList.add('hidden');
+            document.getElementById('ai-priority-banner').classList.add('hidden');
+            document.getElementById('ai-score-header').classList.add('hidden');
+            loadComplaints();
+        });
+
+        async function manageComplaint(complaintId) {
+            try {
+                const [complaintRes, staffRes] = await Promise.all([
+                    fetch(`/api/complaints/${complaintId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/admin/staff', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+
+                const complaintData = await complaintRes.json();
+                const staffData = await staffRes.json();
+
+                if (complaintData.success && staffData.success) {
+                    const c = complaintData.complaint;
+                    const content = document.getElementById('manage-content');
+
+                    let aiAnalysisSection = '';
+                    if (c.ai_analysis) {
+                        aiAnalysisSection = `
+                            <div style="background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%); padding: 1.5rem; border-radius: 12px; border-left: 4px solid #3b82f6; margin-bottom: 1.5rem;">
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                    <div style="font-size: 2rem;">🤖</div>
+                                    <div>
+                                        <strong style="font-size: 1.1rem; color: #1e40af;">AI Priority Analysis</strong>
+                                        <div style="font-size: 0.9rem; color: #1e40af; margin-top: 0.25rem;">
+                                            Suggested Priority: <span class="${app.getPriorityBadgeClass(c.ai_suggested_priority || 'Medium')}">${app.escapeHtml(c.ai_suggested_priority || 'Medium')}</span>
+                                            <span style="margin-left: 1rem;">Confidence Score: <strong>${c.ai_confidence_score || 0}/100</strong></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="background: white; padding: 1rem; border-radius: 8px;">
+                                    <strong>Analysis:</strong>
+                                    <div style="margin-top: 0.5rem; color: #374151;">${app.escapeHtml(c.ai_analysis)}</div>
+                                    ${c.ai_reasons && c.ai_reasons.length > 0 ? `
+                                        <div style="margin-top: 0.75rem;">
+                                            <strong>Key Factors:</strong>
+                                            <ul style="margin: 0.5rem 0; padding-left: 1.5rem; color: #374151;">
+                                                ${c.ai_reasons.map(r => `<li>${app.escapeHtml(r)}</li>`).join('')}
+                                            </ul>
+                                        </div>
+                                    ` : ''}
+                                    ${c.priority_auto_adjusted ? `
+                                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fef3c7; border-radius: 6px; color: #92400e;">
+                                            ⚠️ <strong>Priority was automatically elevated to ${app.escapeHtml(c.priority)}</strong> based on critical factors detected by AI analysis.
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    content.innerHTML = `
+                        ${aiAnalysisSection}
+
+                        <div style="display: grid; gap: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div><strong>Ticket ID:</strong> ${app.escapeHtml(c.ticket_number)}</div>
+                                <div><strong>Priority:</strong> <span class="${app.getPriorityBadgeClass(c.priority)}">${app.escapeHtml(c.priority)}</span></div>
+                                <div><strong>Reporter:</strong> ${app.escapeHtml(c.reporter_name)} <span class="text-muted">(${app.escapeHtml(c.reporter_role || '')})</span></div>
+                                <div><strong>Type:</strong> ${app.escapeHtml(c.complaint_type)}</div>
+                                ${c.machine_name ? `<div><strong>Machine:</strong> ${app.escapeHtml(c.machine_name)} (${app.escapeHtml(c.machine_code)})</div>` : ''}
+                                <div><strong>Location:</strong> ${app.escapeHtml(c.location_display)}</div>
+                                <div><strong>Category:</strong> ${app.escapeHtml(c.category)}</div>
+                                <div><strong>Machine Unusable:</strong> ${c.machine_unusable ? 'Yes' : 'No'}</div>
+                            </div>
+
+                            <div><strong>Description:</strong><br>${app.escapeHtml(c.description)}</div>
+
+                            ${complaintData.images.length > 0 ? `
+                                <div><strong>Photos:</strong><br>
+                                    ${complaintData.images.map(img => `<img src="${app.escapeHtml(img.image_url)}" style="max-width: 200px; margin: 5px; border-radius: 8px;">`).join('')}
+                                </div>
+                            ` : ''}
+
+                            <div style="border-top: 1px solid #e5e7eb; padding-top: 1rem;">
+                                <h4>Update Status</h4>
+                                <form id="status-form" style="display: grid; gap: 1rem;">
+                                    <input type="hidden" id="complaint-id" value="${c.id}">
+                                    <div class="form-group">
+                                        <label>New Status</label>
+                                        <select id="new-status" class="form-control">
+                                            <option value="Submitted" ${c.status === 'Submitted' ? 'selected' : ''}>Submitted</option>
+                                            <option value="Under Review" ${c.status === 'Under Review' ? 'selected' : ''}>Under Review</option>
+                                            <option value="Verified" ${c.status === 'Verified' ? 'selected' : ''}>Verified</option>
+                                            <option value="Assigned" ${c.status === 'Assigned' ? 'selected' : ''}>Assigned</option>
+                                            <option value="In Progress" ${c.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                                            <option value="On Hold" ${c.status === 'On Hold' ? 'selected' : ''}>On Hold</option>
+                                            <option value="Resolved" ${c.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+                                            <option value="Closed" ${c.status === 'Closed' ? 'selected' : ''}>Closed</option>
+                                            <option value="Reopened" ${c.status === 'Reopened' ? 'selected' : ''}>Reopened</option>
+                                            <option value="Rejected" ${c.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Comment</label>
+                                        <textarea id="status-comment" class="form-control" rows="2" placeholder="Add a comment..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Update Status</button>
+                                </form>
+                            </div>
+
+                            <div style="border-top: 1px solid #e5e7eb; padding-top: 1rem;">
+                                <h4>Assign to Staff</h4>
+                                <form id="assign-form" style="display: grid; gap: 1rem;">
+                                    <div class="form-group">
+                                        <label>Staff Member</label>
+                                        <select id="assigned-to" class="form-control">
+                                            <option value="">Select staff member</option>
+                                            ${staffData.staff.map(s => `<option value="${s.id}">${app.escapeHtml(s.name)} (${app.escapeHtml(s.role)}) — ${app.escapeHtml(s.phone || 'no phone')} / ${app.escapeHtml(s.email)}</option>`).join('')}
+                                        </select>
+                                        <div class="task-meta">The staff member receives this task on the phone number and email address shown above.</div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Target Completion Date</label>
+                                        <input type="date" id="due-date" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Instructions</label>
+                                        <textarea id="instructions" class="form-control" rows="2" placeholder="Instructions for the staff member..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-success">Assign Task</button>
+                                </form>
+                            </div>
+
+                            ${complaintData.updates.length > 0 ? `
+                                <div style="border-top: 1px solid #e5e7eb; padding-top: 1rem;">
+                                    <h4>History</h4>
+                                    ${complaintData.updates.map(u => `
+                                        <div style="padding: 0.75rem; background: #f9fafb; margin: 0.5rem 0; border-radius: 6px; border-left: 3px solid #3b82f6;">
+                                            <div style="font-size: 0.85rem; color: #6b7280;">${app.formatDate(u.created_at)}</div>
+                                            <div><strong>${app.escapeHtml(u.user_name)}</strong> changed status to <strong>${app.escapeHtml(u.new_status)}</strong></div>
+                                            ${u.comment ? `<div style="margin-top: 0.25rem;">${app.escapeHtml(u.comment)}</div>` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+
+                    document.getElementById('manage-modal').classList.remove('hidden');
+
+                    // Handle status update
+                    document.getElementById('status-form').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const complaintId = document.getElementById('complaint-id').value;
+                        const status = document.getElementById('new-status').value;
+                        const comment = document.getElementById('status-comment').value;
+
+                        try {
+                            const res = await fetch(`/api/admin/complaints/${complaintId}/status`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({ status, comment })
+                            });
+
+                            const data = await res.json();
+                            if (data.success) {
+                                app.showToast('Status updated successfully', 'success');
+                                document.getElementById('manage-modal').classList.add('hidden');
+                                reloadCurrentView();
+                            } else {
+                                app.showToast(data.message || 'Could not update status', 'error');
+                            }
+                        } catch (error) {
+                            app.showToast('Error updating status', 'error');
+                        }
+                    });
+
+                    // Handle assignment
+                    document.getElementById('assign-form').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const complaintId = document.getElementById('complaint-id').value;
+                        const assigned_to = document.getElementById('assigned-to').value;
+                        const due_date = document.getElementById('due-date').value || null;
+                        const instructions = document.getElementById('instructions').value;
+
+                        if (!assigned_to) {
+                            app.showToast('Please select a staff member', 'warning');
+                            return;
+                        }
+
+                        try {
+                            const res = await fetch(`/api/admin/complaints/${complaintId}/assign`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({ assigned_to, due_date, instructions })
+                            });
+
+                            const data = await res.json();
+                            if (data.success) {
+                                const d = data.delivered;
+                                let note = '';
+                                if (d) {
+                                    if (d.status === 'sent') note = ` — alert delivered via ${d.channel}`;
+                                    else if (d.status === 'partial') note = ` — alert partly delivered via ${d.channel}, check the gateway settings`;
+                                    else if (d.status === 'failed') note = ' — alert delivery failed, see the staff profile for details';
+                                    else note = ' — alert stored in the in-app outbox only (no gateway configured)';
+                                }
+                                app.showToast(`Complaint assigned successfully${note}`, d && d.status === 'failed' ? 'warning' : 'success');
+                                document.getElementById('manage-modal').classList.add('hidden');
+                                reloadCurrentView();
+                            } else {
+                                app.showToast(data.message || 'Could not assign complaint', 'error');
+                            }
+                        } catch (error) {
+                            app.showToast('Error assigning complaint', 'error');
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error managing complaint:', error);
+            }
+        }
+
+        // Make manageComplaint globally accessible for the inline row buttons
+        window.manageComplaint = manageComplaint;
+
+        document.getElementById('filter-status').addEventListener('change', () => {
+            reloadCurrentView();
+        });
+
+        document.getElementById('close-manage-modal').addEventListener('click', () => {
+            document.getElementById('manage-modal').classList.add('hidden');
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        });
+
+        /* ------------------------------------------------------------------ *
+         * Tabs
+         * ------------------------------------------------------------------ */
+
+        let activeTab = 'staff';
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('#admin-tabs .tab-btn').forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+            ['complaints', 'staff', 'analytics'].forEach((name) => {
+                document.getElementById(`tab-${name}`).classList.toggle('hidden', name !== tab);
+            });
+
+            if (tab === 'staff') {
+                loadGatewayStatus();
+                loadOutbox();
+                loadStaff();
+                loadUserAccounts();
+            }
+            if (tab === 'analytics') loadAnalytics(analyticsPeriod);
+        }
+
+        document.querySelectorAll('#admin-tabs .tab-btn').forEach((btn) => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        /* ------------------------------------------------------------------ *
+         * Staff management
+         * ------------------------------------------------------------------ */
+
+        const staffForm = document.getElementById('staff-form');
+
+        const DELIVERY_LABELS = {
+            queued: 'Sending…',
+            sent: 'Delivered',
+            partial: 'Partly delivered',
+            failed: 'Delivery failed',
+            skipped: 'In-app only'
+        };
+
+        function deliveryPill(status) {
+            const key = DELIVERY_LABELS[status] ? status : 'skipped';
+            return `<span class="delivery-pill ${key}">${DELIVERY_LABELS[key]}</span>`;
+        }
+
+        function deliveryDetail(message) {
+            const attempts = message.delivery_attempts || [];
+            if (attempts.length === 0) return '';
+            return attempts.map((a) => {
+                const outcome = a.status === 'sent'
+                    ? `sent${a.provider_id ? ` (id ${app.escapeHtml(String(a.provider_id).slice(0, 24))})` : ''}`
+                    : `${a.status}${a.error ? `: ${a.error}` : ''}`;
+                return `<div class="delivery-attempt">${app.escapeHtml(a.channel)} — ${app.escapeHtml(outcome)}</div>`;
+            }).join('');
+        }
+
+        /* ------------------------------------------------------------------ *
+         * Notification gateways
+         *
+         * The server verifies each gateway for real (a live SMTP session, a
+         * live provider credential check). We therefore label with the
+         * verification result, never with "credentials are present".
+         * ------------------------------------------------------------------ */
+
+        const GATEWAY_STATES = {
+            configured: { label: 'Configured', pill: 'sent' },
+            in_app_only: { label: 'In-app only', pill: 'skipped' },
+            error: { label: 'Configuration error', pill: 'failed' },
+            unchecked: { label: 'Not checked yet', pill: 'queued' }
+        };
+
+        const EMAIL_HELP = 'Set <code>BREVO_API_KEY</code> (Brevo HTTP API, keys start with <code>xkeysib-</code>) — or <code>SMTP_HOST</code>, <code>SMTP_USER</code> and <code>SMTP_PASS</code> for plain SMTP — in <code>.env</code> and restart the server. "Configured" appears only after the server verifies the credentials for real.';
+
+        const SMS_HELP = 'Set <code>SMS_PROVIDER</code> (<code>twilio</code> or <code>fast2sms</code>) plus that provider\'s credentials in <code>.env</code> and restart the server. Leave it as <code>none</code> to keep SMS in-app only.';
+
+        function gatewayBlock(title, data, summary, help) {
+            const state = GATEWAY_STATES[data.status] || GATEWAY_STATES.unchecked;
+            const missing = data.missing || [];
+            const missingLine = (data.status !== 'configured' && missing.length > 0)
+                ? `<div class="gateway-detail">Missing: ${missing.map((m) => `<code>${app.escapeHtml(m)}</code>`).join(', ')}</div>`
+                : '';
+            const detailLine = data.detail
+                ? `<div class="gateway-detail">${app.escapeHtml(data.detail)}</div>`
+                : '';
+
+            return `
+                <div class="gateway-block">
+                    <div class="gateway-item">
+                        <strong>${title}</strong>
+                        <span class="delivery-pill ${state.pill}">${state.label}</span>
+                    </div>
+                    <div class="gateway-detail">${summary}</div>
+                    ${detailLine}
+                    ${missingLine}
+                    <div class="gateway-detail text-muted">${data.checked_at ? `Last checked ${app.escapeHtml(app.formatDate(data.checked_at))}` : 'Not checked by the server yet.'}</div>
+                    <div class="gateway-help">${help}</div>
+                </div>
+            `;
+        }
+
+        function emailGatewaySummary(d) {
+            if (d.provider === 'brevo') return `Brevo HTTP API · from ${app.escapeHtml(d.from || 'MAIL_FROM not set')}`;
+            if (!d.smtp_host) return 'No email provider configured.';
+            return `SMTP ${app.escapeHtml(d.smtp_host)}:${app.escapeHtml(String(d.smtp_port || 587))}${d.secure ? ' (TLS)' : ''} · from ${app.escapeHtml(d.from || 'MAIL_FROM not set')}`;
+        }
+
+        function smsGatewaySummary(d) {
+            if (!d.provider || d.provider === 'none') return 'No SMS provider selected.';
+            return `Provider ${app.escapeHtml(d.provider)}${d.sender_id ? ` · sender ${app.escapeHtml(d.sender_id)}` : ''}`;
+        }
+
+        async function loadGatewayStatus() {
+            const banner = document.getElementById('gateway-banner');
+            try {
+                const res = await fetch('/api/notifications/gateways', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (!data.success) throw new Error('unavailable');
+
+                banner.innerHTML = [
+                    gatewayBlock('Email', data.email, emailGatewaySummary(data.email), EMAIL_HELP),
+                    gatewayBlock('SMS', data.sms, smsGatewaySummary(data.sms), SMS_HELP)
+                ].join('');
+            } catch (error) {
+                banner.innerHTML = '<span class="text-muted">Could not read the notification gateway configuration.</span>';
+            }
+        }
+
+        async function recheckGateways() {
+            const btn = document.getElementById('gateway-recheck-btn');
+            btn.disabled = true;
+            btn.textContent = 'Checking…';
+            try {
+                const res = await fetch('/api/notifications/gateways/verify', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'unavailable');
+                await loadGatewayStatus();
+                app.showToast('Gateway status refreshed', 'success');
+            } catch (error) {
+                app.showToast('Could not verify the notification gateways', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Re-check now';
+            }
+        }
+
+        /* ------------------------------------------------------------------ *
+         * Notification outbox
+         * ------------------------------------------------------------------ */
+
+        const OUTBOX_TILES = [
+            { key: 'total', label: 'Recorded' },
+            { key: 'sent', label: 'Delivered' },
+            { key: 'partial', label: 'Partly delivered' },
+            { key: 'failed', label: 'Failed' },
+            { key: 'pending', label: 'Pending' },
+            { key: 'skipped', label: 'In-app only' }
+        ];
+
+        async function loadOutbox() {
+            const summaryEl = document.getElementById('outbox-summary');
+            const tbody = document.getElementById('outbox-tbody');
+            try {
+                const res = await fetch('/api/notifications/outbox?limit=50', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'unavailable');
+
+                const s = data.summary;
+                summaryEl.innerHTML = OUTBOX_TILES.map((t) => `
+                    <div class="analytics-tile">
+                        <div class="tile-value">${s[t.key] || 0}</div>
+                        <div class="tile-label">${t.label}</div>
+                    </div>
+                `).join('');
+
+                if (!data.messages || data.messages.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><strong>No notifications yet</strong>Assign a task to a staff member and the alert sent to their phone number and email address will appear here.</div></td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.messages.map((m) => `
+                    <tr>
+                        <td>${app.escapeHtml(app.formatDate(m.last_attempt_at || m.created_at))}</td>
+                        <td>
+                            <strong>${app.escapeHtml(m.recipient_name || 'Unknown')}</strong>
+                            <span class="task-meta">${app.escapeHtml(m.kind || '')}</span>
+                        </td>
+                        <td>
+                            ${app.escapeHtml(m.recipient_email || 'No email on file')}
+                            <span class="task-meta">${app.escapeHtml(m.recipient_phone || 'No phone on file')}</span>
+                        </td>
+                        <td>
+                            ${app.escapeHtml(m.subject || '')}
+                            <span class="task-meta">${app.escapeHtml(m.ticket_number || '')}</span>
+                        </td>
+                        <td>${deliveryPill(m.delivery_status)}${deliveryDetail(m)}</td>
+                        <td>
+                            ${m.delivery_status === 'sent'
+                                ? '<span class="text-muted">—</span>'
+                                : `<button class="btn btn-small btn-secondary" onclick="window.retryNotification(${m.id})">Retry</button>`}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading outbox:', error);
+                tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">Could not load the notification outbox.</div></td></tr>';
+            }
+        }
+
+        async function retryNotification(id) {
+            try {
+                const res = await fetch(`/api/notifications/messages/${id}/retry`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                app.showToast(data.message || (data.success ? 'Retry finished' : 'Retry failed'), data.success ? 'success' : 'error');
+            } catch (error) {
+                app.showToast('Could not retry the notification', 'error');
+            }
+            loadOutbox();
+        }
+
+        async function retryAllFailed() {
+            const btn = document.getElementById('outbox-retry-btn');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/notifications/retry-failed', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                app.showToast(data.message || (data.success ? 'Retry finished' : 'Retry failed'), data.success ? 'success' : 'error');
+            } catch (error) {
+                app.showToast('Could not retry the notifications', 'error');
+            } finally {
+                btn.disabled = false;
+                loadOutbox();
+            }
+        }
+
+        window.retryNotification = retryNotification;
+        document.getElementById('gateway-recheck-btn').addEventListener('click', recheckGateways);
+        document.getElementById('outbox-retry-btn').addEventListener('click', retryAllFailed);
+
+        function resetStaffForm() {
+            staffForm.reset();
+            document.getElementById('staff-edit-id').value = '';
+            document.getElementById('staff-form-title').textContent = 'Add Staff Member';
+            document.getElementById('staff-submit-btn').textContent = 'Add Staff Member';
+            document.getElementById('staff-cancel-btn').classList.add('hidden');
+            document.getElementById('staff-password').placeholder = 'Min. 6 characters';
+        }
+
+        async function loadStaff() {
+            const tbody = document.getElementById('staff-tbody');
+            try {
+                const res = await fetch('/api/admin/staff', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+
+                if (!data.success) {
+                    app.showToast(data.message || 'Could not load staff', 'error');
+                    return;
+                }
+
+                if (data.staff.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><strong>No staff members yet</strong>Use the form above to add the department staff, technicians and workers.</div></td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.staff.map((s) => `
+                    <tr>
+                        <td><strong>${app.escapeHtml(s.name)}</strong></td>
+                        <td>
+                            ${app.escapeHtml(s.email || '—')}
+                            <span class="task-meta">${app.escapeHtml(s.phone || 'No phone on file')}</span>
+                        </td>
+                        <td>${app.escapeHtml(s.role)}</td>
+                        <td>${app.escapeHtml(s.user_id || '—')}</td>
+                        <td>
+                            ${s.work_types && s.work_types.length > 0
+                                ? s.work_types.map((w) => `<span class="channel-pill">${app.escapeHtml(w)}</span>`).join(' ')
+                                : '<span class="text-muted">No open work</span>'}
+                        </td>
+                        <td>${s.open_tasks}</td>
+                        <td>${s.completed_tasks}</td>
+                        <td>${s.message_count}</td>
+                        <td>
+                            <div class="task-actions">
+                                <button class="btn btn-small btn-primary" onclick="window.viewStaffProfile(${s.id})">Profile</button>
+                                <button class="btn btn-small btn-secondary" onclick="window.editStaff(${s.id})">Edit</button>
+                                <button class="btn btn-small btn-danger" onclick="window.removeStaff(${s.id})">Remove</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+                window.staffCache = data.staff;
+            } catch (error) {
+                console.error('Error loading staff:', error);
+                app.showToast('Could not load staff', 'error');
+            }
+        }
+
+        function editStaff(id) {
+            const member = (window.staffCache || []).find((s) => s.id === id);
+            if (!member) return;
+
+            switchTab('staff');
+            document.getElementById('staff-edit-id').value = member.id;
+            document.getElementById('staff-name').value = member.name || '';
+            document.getElementById('staff-email').value = member.email || '';
+            document.getElementById('staff-phone').value = member.phone || '';
+            document.getElementById('staff-role').value = member.role;
+            document.getElementById('staff-user-id').value = member.user_id || '';
+            document.getElementById('staff-password').value = '';
+            document.getElementById('staff-password').placeholder = 'Leave blank to keep the current password';
+            document.getElementById('staff-form-title').textContent = `Edit ${member.name}`;
+            document.getElementById('staff-submit-btn').textContent = 'Save Changes';
+            document.getElementById('staff-cancel-btn').classList.remove('hidden');
+            document.getElementById('staff-name').focus();
+        }
+
+        async function removeStaff(id) {
+            const member = (window.staffCache || []).find((s) => s.id === id);
+            if (!member) return;
+            if (!confirm(`Remove ${member.name} from the staff list?`)) return;
+
+            try {
+                const res = await fetch(`/api/admin/staff/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                app.showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) {
+                    document.getElementById('staff-profile-card').classList.add('hidden');
+                    loadStaff();
+                }
+            } catch (error) {
+                app.showToast('Could not remove the staff member', 'error');
+            }
+        }
+
+        async function viewStaffProfile(id) {
+            const card = document.getElementById('staff-profile-card');
+            const content = document.getElementById('staff-profile-content');
+            content.innerHTML = '<div class="empty-state">Loading profile…</div>';
+            card.classList.remove('hidden');
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            try {
+                const res = await fetch(`/api/admin/staff/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+
+                if (!data.success) {
+                    content.innerHTML = `<div class="empty-state">${app.escapeHtml(data.message || 'Could not load profile')}</div>`;
+                    return;
+                }
+
+                const p = data.profile;
+                const s = data.stats;
+
+                const tasksHtml = data.tasks.length === 0
+                    ? '<div class="empty-state">No tasks assigned yet.</div>'
+                    : `<div class="table-container">
+                        <table class="data-table">
+                            <thead><tr><th>Ticket</th><th>Complaint</th><th>Location</th><th>Priority</th><th>Due</th><th>Status</th></tr></thead>
+                            <tbody>
+                                ${data.tasks.map((t) => `
+                                    <tr class="${t.is_overdue ? 'task-overdue' : ''}">
+                                        <td><strong>${app.escapeHtml(t.ticket_number)}</strong></td>
+                                        <td>${app.escapeHtml(t.title)}</td>
+                                        <td>${app.escapeHtml(t.location_display)}</td>
+                                        <td><span class="${app.getPriorityBadgeClass(t.priority)}">${app.escapeHtml(t.priority)}</span></td>
+                                        <td>${t.due_date ? app.formatDate(t.due_date) : '—'}${t.is_overdue ? ' <span class="text-danger">Overdue</span>' : ''}</td>
+                                        <td><span class="${app.getStatusBadgeClass(t.complaint_status)}">${app.escapeHtml(t.complaint_status)}</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>`;
+
+                const messagesHtml = data.messages.length === 0
+                    ? '<div class="empty-state"><strong>No alerts sent yet</strong>When a complaint is assigned to this member, the message delivered to their phone / email appears here.</div>'
+                    : data.messages.map((m) => `
+                        <div class="msg-item ${m.read_status ? '' : 'unread'}">
+                            <div class="msg-meta">
+                                <span class="channel-pill">${app.escapeHtml(m.delivery_channel)}</span>
+                                ${deliveryPill(m.delivery_status)}
+                                <span>To: ${app.escapeHtml(m.recipient_phone || '—')}</span>
+                                <span>${app.escapeHtml(m.recipient_email || '—')}</span>
+                                <span>${app.formatDate(m.created_at)}</span>
+                                <span>${m.read_status ? 'Read' : 'Unread'}</span>
+                            </div>
+                            <span class="msg-subject">${app.escapeHtml(m.subject)}</span>
+                            <div class="msg-body">${app.escapeHtml(m.body)}</div>
+                            ${deliveryDetail(m)}
+                        </div>
+                    `).join('');
+
+                const workBoxHtml = (data.work_types && data.work_types.length > 0)
+                    ? `<div class="breakdown-list">
+                        ${data.work_types.map((w) => `
+                            <div class="breakdown-row">
+                                <span>${app.escapeHtml(w.label)}</span>
+                                <span class="breakdown-count">${w.count}</span>
+                                <span class="breakdown-bar"><span style="width: ${Math.round((w.count / data.work_types[0].count) * 100)}%"></span></span>
+                            </div>
+                        `).join('')}
+                    </div>`
+                    : '<div class="empty-state"><strong>No open work</strong>Nothing is currently assigned to this member.</div>';
+
+                const initials = (p.name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+
+                content.innerHTML = `
+                    <div class="profile-header">
+                        <div class="avatar-circle">${app.escapeHtml(initials)}</div>
+                        <div>
+                            <h3 style="margin: 0;">${app.escapeHtml(p.name)}</h3>
+                            <span class="text-muted">${app.escapeHtml(p.role)}${p.user_id ? ` · ${app.escapeHtml(p.user_id)}` : ''}</span>
+                        </div>
+                    </div>
+
+                    <div class="two-col">
+                        <div>
+                            <h4 style="margin-bottom: 0.5rem;">Contact Details</h4>
+                            <div class="contact-row"><span class="contact-label">Email</span><span>${app.escapeHtml(p.email || '—')}</span></div>
+                            <div class="contact-row"><span class="contact-label">Phone</span><span>${app.escapeHtml(p.phone || 'No phone on file')}</span></div>
+                            <div class="contact-row"><span class="contact-label">Role</span><span>${app.escapeHtml(p.role)}</span></div>
+                            <div class="contact-row"><span class="contact-label">Department</span><span>${app.escapeHtml(p.department || 'Plastic Polymer Testing')}</span></div>
+                            <div class="contact-row"><span class="contact-label">Member Since</span><span>${app.formatDate(p.member_since)}</span></div>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 0.5rem;">Workload</h4>
+                            <div class="analytics-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                                <div class="analytics-tile"><div class="tile-value">${s.total_tasks}</div><div class="tile-label">Total Tasks</div></div>
+                                <div class="analytics-tile"><div class="tile-value">${s.open_tasks}</div><div class="tile-label">Open</div></div>
+                                <div class="analytics-tile"><div class="tile-value">${s.in_progress_tasks}</div><div class="tile-label">In Progress</div></div>
+                                <div class="analytics-tile"><div class="tile-value">${s.completed_tasks}</div><div class="tile-label">Completed</div></div>
+                                <div class="analytics-tile"><div class="tile-value">${s.overdue_tasks}</div><div class="tile-label">Overdue</div></div>
+                                <div class="analytics-tile"><div class="tile-value">${s.messages_sent}</div><div class="tile-label">Alerts Sent</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin: 1.5rem 0 0.75rem;">Type of Work Assigned</h4>
+                    ${workBoxHtml}
+
+                    <h4 style="margin: 1.5rem 0 0.75rem;">Assigned Tasks</h4>
+                    ${tasksHtml}
+
+                    <h4 style="margin: 1.5rem 0 0.75rem;">Messages sent to ${app.escapeHtml(p.name.split(' ')[0])}'s phone / email</h4>
+                    ${messagesHtml}
+                `;
+            } catch (error) {
+                console.error('Error loading staff profile:', error);
+                content.innerHTML = '<div class="empty-state">Could not load profile.</div>';
+            }
+        }
+
+        staffForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const editId = document.getElementById('staff-edit-id').value;
+            const payload = {
+                name: document.getElementById('staff-name').value.trim(),
+                email: document.getElementById('staff-email').value.trim(),
+                phone: document.getElementById('staff-phone').value.trim(),
+                role: document.getElementById('staff-role').value,
+                user_id: document.getElementById('staff-user-id').value.trim(),
+                password: document.getElementById('staff-password').value
+            };
+
+            if (!editId && payload.password.length < 6) {
+                app.showToast('Provide a temporary password of at least 6 characters', 'warning');
+                return;
+            }
+
+            try {
+                const res = await fetch(editId ? `/api/admin/staff/${editId}` : '/api/admin/staff', {
+                    method: editId ? 'PATCH' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                app.showToast(data.message || (data.success ? 'Saved' : 'Could not save'), data.success ? 'success' : 'error');
+                if (data.success) {
+                    resetStaffForm();
+                    loadStaff();
+                }
+            } catch (error) {
+                app.showToast('Could not save the staff member', 'error');
+            }
+        });
+
+        document.getElementById('staff-cancel-btn').addEventListener('click', resetStaffForm);
+        document.getElementById('reload-staff-btn').addEventListener('click', loadStaff);
+        document.getElementById('reload-accounts-btn').addEventListener('click', loadUserAccounts);
+
+        // Every account, including the ones that registered themselves as reporters.
+        // Administrator accounts are left out — their role cannot be changed here.
+        async function loadUserAccounts() {
+            const select = document.getElementById('role-account');
+            const previous = select.value;
+            try {
+                const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (!data.success) {
+                    app.showToast(data.message || 'Could not load accounts', 'error');
+                    return;
+                }
+
+                const accounts = data.users.filter((u) => !['hod', 'admin'].includes(u.role));
+                select.innerHTML = '<option value="">Select an account</option>' + accounts
+                    .map((u) => `<option value="${u.id}">${app.escapeHtml(u.name)} — ${app.escapeHtml(u.email)} (${app.escapeHtml(u.role)})</option>`)
+                    .join('');
+                select.value = previous;
+            } catch (error) {
+                app.showToast('Could not load accounts', 'error');
+            }
+        }
+
+        document.getElementById('role-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('role-account').value;
+            const role = document.getElementById('role-new').value;
+
+            if (!userId) {
+                app.showToast('Choose the account whose role should change', 'warning');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/admin/users/${userId}/role`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role })
+                });
+                const data = await res.json();
+                app.showToast(data.message || (data.success ? 'Role updated' : 'Could not update the role'), data.success ? 'success' : 'error');
+                if (data.success) {
+                    // A promoted account must show up in the staff list straight away
+                    loadStaff();
+                    loadUserAccounts();
+                }
+            } catch (error) {
+                app.showToast('Could not update the role', 'error');
+            }
+        });
+
+        document.getElementById('close-profile-btn').addEventListener('click', () => {
+            document.getElementById('staff-profile-card').classList.add('hidden');
+        });
+
+        window.viewStaffProfile = viewStaffProfile;
+        window.editStaff = editStaff;
+        window.removeStaff = removeStaff;
+
+        /* ------------------------------------------------------------------ *
+         * Analytics
+         * ------------------------------------------------------------------ */
+
+        let analyticsPeriod = 'monthly';
+
+        function renderBreakdown(containerId, rows, total) {
+            const container = document.getElementById(containerId);
+            if (!rows || rows.length === 0) {
+                container.innerHTML = '<div class="empty-state">No data for this period.</div>';
+                return;
+            }
+            const max = total || Math.max(...rows.map((r) => r.count));
+            container.innerHTML = rows.map((r) => `
+                <div class="breakdown-row">
+                    <span>${app.escapeHtml(r.label)}</span>
+                    <span class="breakdown-count">${r.count}</span>
+                    <span class="breakdown-bar"><span style="width: ${max ? Math.round((r.count / max) * 100) : 0}%"></span></span>
+                </div>
+            `).join('');
+        }
+
+        async function loadAnalytics(period) {
+            analyticsPeriod = period;
+
+            document.querySelectorAll('#period-switch button').forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.period === period);
+            });
+
+            try {
+                const res = await fetch(`/api/admin/analytics?period=${period}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (!data.success) {
+                    app.showToast(data.message || 'Could not load analytics', 'error');
+                    return;
+                }
+
+                const s = data.summary;
+                document.getElementById('analytics-window').textContent =
+                    `${data.label} · ${new Date(data.window_start).toLocaleDateString()} – ${new Date(data.window_end).toLocaleDateString()}`;
+
+                document.getElementById('analytics-tiles').innerHTML = `
+                    <div class="analytics-tile"><div class="tile-value">${s.period_total}</div><div class="tile-label">Complaints In Period</div></div>
+                    <div class="analytics-tile"><div class="tile-value">${s.period_resolved}</div><div class="tile-label">Resolved</div></div>
+                    <div class="analytics-tile"><div class="tile-value">${s.period_pending}</div><div class="tile-label">Pending</div></div>
+                    <div class="analytics-tile"><div class="tile-value">${s.resolution_rate}%</div><div class="tile-label">Resolution Rate</div></div>
+                    <div class="analytics-tile"><div class="tile-value">${s.avg_resolution_hours === null ? '—' : s.avg_resolution_hours + 'h'}</div><div class="tile-label">Avg Resolution Time</div></div>
+                    <div class="analytics-tile"><div class="tile-value">${s.busiest_label}</div><div class="tile-label">Busiest (${s.busiest_count})</div></div>
+                    <div class="analytics-tile"><div class="tile-value">${s.open_assignments}</div><div class="tile-label">Open Assignments</div></div>
+                    <div class="analytics-tile"><div class="tile-value">${s.overdue_assignments}</div><div class="tile-label">Overdue Assignments</div></div>
+                    <div class="analytics-tile"><div class="tile-value">${s.all_time_total}</div><div class="tile-label">All-Time Complaints</div></div>
+                `;
+
+                const max = Math.max(...data.buckets.map((b) => b.total), 1);
+                document.getElementById('analytics-chart').innerHTML = data.buckets.map((b) => `
+                    <div class="chart-col">
+                        <span class="chart-value">${b.total || ''}</span>
+                        <div class="chart-stack">
+                            <div class="chart-seg pending" style="height: ${Math.round((b.pending / max) * 100)}%" title="${b.pending} pending"></div>
+                            <div class="chart-seg resolved" style="height: ${Math.round((b.resolved / max) * 100)}%" title="${b.resolved} resolved"></div>
+                        </div>
+                        <span class="chart-label">${app.escapeHtml(b.label)}</span>
+                    </div>
+                `).join('');
+
+                renderBreakdown('bd-status', data.byStatus, s.period_total);
+                renderBreakdown('bd-priority', data.byPriority, s.period_total);
+                renderBreakdown('bd-type', data.byType, s.period_total);
+                renderBreakdown('bd-category', data.byCategory, s.period_total);
+                renderBreakdown('bd-machines', data.topMachines, s.period_total);
+                renderBreakdown('bd-workload', (data.staff_workload || []).map((w) => ({
+                    label: `${w.name} (${w.role})`,
+                    count: w.open
+                })), Math.max(...(data.staff_workload || []).map((w) => w.open), 1));
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+                app.showToast('Could not load analytics', 'error');
+            }
+        }
+
+        document.querySelectorAll('#period-switch button').forEach((btn) => {
+            btn.addEventListener('click', () => loadAnalytics(btn.dataset.period));
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            if (activeTab === 'staff') {
+                loadGatewayStatus();
+                loadOutbox();
+                loadStaff();
+            } else if (activeTab === 'analytics') {
+                loadAnalytics(analyticsPeriod);
+            } else {
+                reloadCurrentView();
+            }
+        });
+
+        // The name that signs every alert this account sends
+        const profileModal = document.getElementById('profile-modal');
+
+        document.getElementById('edit-profile-btn').addEventListener('click', () => {
+            document.getElementById('profile-name').value = user.name || '';
+            document.getElementById('profile-phone').value = user.phone || '';
+            profileModal.classList.remove('hidden');
+        });
+
+        document.getElementById('close-profile-modal').addEventListener('click', () => {
+            profileModal.classList.add('hidden');
+        });
+
+        document.getElementById('profile-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const name = document.getElementById('profile-name').value.trim();
+            const phone = document.getElementById('profile-phone').value.trim();
+
+            try {
+                const response = await fetch('/api/auth/profile', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ name, phone })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    user.name = data.user.name;
+                    user.phone = data.user.phone;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    document.getElementById('admin-greeting').textContent = `Welcome, ${user.name}`;
+                    profileModal.classList.add('hidden');
+                    app.showToast('Signing name updated', 'success');
+                } else {
+                    app.showToast(data.message || 'Could not save your name', 'error');
+                }
+            } catch (error) {
+                app.showToast('Could not save your name', 'error');
+            }
+        });
+
+        loadStatistics();
+        loadComplaints();
+        loadGatewayStatus();
+        loadOutbox();
+        loadStaff();
+        loadUserAccounts();
+        app.initNotificationBell();
+    </script>
+</body>
+</html>

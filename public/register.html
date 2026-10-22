@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Plastic Polymer Testing Department</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-content">
+            <div class="branding">
+                <div class="logo-placeholder">
+                    <img src="college-logo.png" alt="College Logo" class="college-logo">
+                </div>
+                <div class="header-text">
+                    <h1 class="dept-title">Plastic Polymer Testing Department</h1>
+                    <p class="dept-subtitle">Machine Complaint & Maintenance Portal</p>
+                </div>
+            </div>
+            <nav class="main-nav">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/login" class="nav-link">Login</a>
+                <a href="/register" class="nav-link active">Register</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="auth-page">
+        <div class="container">
+            <div class="auth-card">
+                <h2>Create Your Account</h2>
+                <p class="auth-subtitle">Register to submit and track machine complaints</p>
+
+                <form id="register-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="name">Full Name *</label>
+                        <input type="text" id="name" name="name" required placeholder="Enter your full name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address *</label>
+                        <input type="email" id="email" name="email" required placeholder="your.email@college.edu">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="user_id">Student/Employee ID *</label>
+                        <input type="text" id="user_id" name="user_id" required placeholder="e.g., STU2023001 or EMP001">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" placeholder="10-digit mobile number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">Your Role *</label>
+                        <select id="role" name="role" required>
+                            <option value="">Select your role</option>
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="faculty">Faculty</option>
+                            <option value="staff">Staff</option>
+                            <option value="worker">Worker</option>
+                            <option value="technician">Technician</option>
+                        </select>
+                        <small class="text-muted">HOD and Admin accounts are created by the department office.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password *</label>
+                        <input type="password" id="password" name="password" required minlength="6" placeholder="At least 6 characters">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm Password *</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required minlength="6" placeholder="Re-enter password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Register</button>
+
+                    <div class="form-footer">
+                        <p>Already have an account? <a href="/login">Login here</a></p>
+                    </div>
+                </form>
+
+                <div id="error-message" class="error-message hidden"></div>
+                <div id="success-message" class="success-message hidden"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-info">
+                <p>&copy; 2026 Plastic Polymer Testing Department</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                user_id: document.getElementById('user_id').value,
+                phone: document.getElementById('phone').value,
+                role: document.getElementById('role').value,
+                password: document.getElementById('password').value
+            };
+
+            const confirmPassword = document.getElementById('confirm_password').value;
+
+            const errorMsg = document.getElementById('error-message');
+            const successMsg = document.getElementById('success-message');
+
+            errorMsg.classList.add('hidden');
+            successMsg.classList.add('hidden');
+
+            if (formData.password !== confirmPassword) {
+                errorMsg.textContent = 'Passwords do not match';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+
+                    successMsg.textContent = 'Registration successful! Redirecting...';
+                    successMsg.classList.remove('hidden');
+
+                    setTimeout(() => {
+                        if (['hod', 'admin'].includes(data.user.role)) {
+                            window.location.href = '/admin';
+                        } else if (['staff', 'technician', 'worker', 'faculty', 'teacher'].includes(data.user.role)) {
+                            window.location.href = '/staff';
+                        } else {
+                            window.location.href = '/dashboard';
+                        }
+                    }, 1500);
+                } else {
+                    errorMsg.textContent = data.message || data.errors?.[0]?.msg || 'Registration failed';
+                    errorMsg.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorMsg.textContent = 'Connection error. Please try again.';
+                errorMsg.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

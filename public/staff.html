@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard - Plastic Polymer Testing Department</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-content">
+            <div class="branding">
+                <div class="logo-placeholder">
+                    <img src="college-logo.png" alt="College Logo" class="college-logo">
+                </div>
+                <div class="header-text">
+                    <h1 class="dept-title">Plastic Polymer Testing Department</h1>
+                    <p class="dept-subtitle">Staff/Technician Dashboard</p>
+                </div>
+            </div>
+            <nav class="main-nav">
+                <a href="/staff" class="nav-link active">My Tasks</a>
+                <div id="notification-bell"></div>
+                <a href="#" id="logout-btn" class="nav-link">Logout</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <div class="container">
+            <div class="dashboard-header">
+                <div>
+                    <h2 class="dashboard-title">Staff Dashboard</h2>
+                    <p class="dashboard-subtitle" id="staff-greeting">Welcome</p>
+                </div>
+                <div class="dashboard-actions">
+                    <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="dashboard-stat-card">
+                    <div class="stat-value" id="stat-assigned">—</div>
+                    <div class="stat-label">Assigned Tasks</div>
+                </div>
+                <div class="dashboard-stat-card warning">
+                    <div class="stat-value" id="stat-pending">—</div>
+                    <div class="stat-label">Awaiting Start</div>
+                </div>
+                <div class="dashboard-stat-card warning">
+                    <div class="stat-value" id="stat-in-progress">—</div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+                <div class="dashboard-stat-card success">
+                    <div class="stat-value" id="stat-completed">—</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="dashboard-stat-card danger">
+                    <div class="stat-value" id="stat-overdue">—</div>
+                    <div class="stat-label">Overdue</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Assigned Tasks</h3>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Ticket ID</th>
+                                <th>Machine / Location</th>
+                                <th>Problem</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Assigned</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasks-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 2rem;">Loading tasks...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Messages Sent To You</h3>
+                    <span class="text-muted" id="messages-recipient"></span>
+                </div>
+                <div id="messages-list">
+                    <div class="empty-state">Loading messages…</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-info">
+                <p>&copy; 2026 Plastic Polymer Testing Department</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+
+        if (!token || !userStr) {
+            window.location.href = '/login';
+        }
+
+        const user = JSON.parse(userStr);
+        document.getElementById('staff-greeting').textContent = `Welcome, ${user.name}`;
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        });
+
+        const WORKER_STATUSES = ['In Progress', 'On Hold', 'Resolved', 'Reopened'];
+        let tasks = [];
+
+        async function apiFetch(endpoint, options = {}) {
+            const response = await fetch(endpoint, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                    ...(options.headers || {})
+                }
+            });
+            return response.json();
+        }
+
+        function renderStats(stats) {
+            document.getElementById('stat-assigned').textContent = stats.assigned_tasks;
+            document.getElementById('stat-pending').textContent = stats.pending_tasks;
+            document.getElementById('stat-in-progress').textContent = stats.in_progress_tasks;
+            document.getElementById('stat-completed').textContent = stats.completed_tasks;
+            document.getElementById('stat-overdue').textContent = stats.overdue_tasks;
+        }
+
+        function renderTasks() {
+            const tbody = document.getElementById('tasks-tbody');
+
+            if (tasks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No tasks assigned to you yet.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = tasks.map((task) => {
+                const status = task.complaint_status;
+                const isComplete = ['Resolved', 'Closed'].includes(status);
+                const options = WORKER_STATUSES
+                    .map((s) => `<option value="${s}" ${s === status ? 'selected' : ''}>${s}</option>`)
+                    .join('');
+
+                return `
+                    <tr class="${task.is_overdue ? 'task-overdue' : ''}">
+                        <td><strong>${app.escapeHtml(task.ticket_number)}</strong></td>
+                        <td>
+                            ${app.escapeHtml(task.machine_name || 'N/A')}
+                            <span class="task-meta">${app.escapeHtml(task.location_display || '')}</span>
+                        </td>
+                        <td>
+                            ${app.escapeHtml(task.title)}
+                            <span class="task-meta">${app.escapeHtml([task.complaint_type, task.category].filter(Boolean).join(' · '))}</span>
+                        </td>
+                        <td><span class="${app.getPriorityBadgeClass(task.priority)}">${app.escapeHtml(task.priority)}</span></td>
+                        <td><span class="${app.getStatusBadgeClass(status)}">${app.escapeHtml(status)}</span></td>
+                        <td>
+                            ${app.formatDate(task.assigned_at)}
+                            ${task.due_date ? `<span class="task-meta ${task.is_overdue ? 'text-danger' : ''}">Due ${app.formatDate(task.due_date)}</span>` : ''}
+                        </td>
+                        <td>
+                            ${isComplete
+                                ? '<span class="text-muted">Completed</span>'
+                                : `<div class="task-actions">
+                                       <select data-task="${task.complaint_id}">${options}</select>
+                                       <button class="btn btn-primary btn-small" data-update="${task.complaint_id}">Update</button>
+                                   </div>`}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadStats() {
+            const data = await apiFetch('/api/dashboard/statistics');
+            if (data.success && data.staffStats) renderStats(data.staffStats);
+        }
+
+        async function loadTasks() {
+            try {
+                const data = await apiFetch('/api/dashboard/tasks');
+                if (!data.success) {
+                    app.showToast(data.message || 'Could not load tasks', 'error');
+                    return;
+                }
+                tasks = data.tasks;
+                renderTasks();
+            } catch (error) {
+                app.showToast('Could not load tasks', 'error');
+            }
+        }
+
+        document.getElementById('tasks-tbody').addEventListener('click', async (event) => {
+            const complaintId = event.target.dataset.update;
+            if (!complaintId) return;
+
+            const select = document.querySelector(`select[data-task="${complaintId}"]`);
+            const status = select.value;
+            const comment = prompt(`Add a note for "${status}" (optional):`) || undefined;
+
+            event.target.disabled = true;
+            try {
+                const data = await apiFetch(`/api/admin/complaints/${complaintId}/status`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status, comment })
+                });
+
+                if (data.success) {
+                    app.showToast(`Task updated to "${status}"`, 'success');
+                } else {
+                    app.showToast(data.message || 'Update failed', 'error');
+                }
+            } catch (error) {
+                app.showToast('Update failed', 'error');
+            } finally {
+                event.target.disabled = false;
+                await Promise.all([loadTasks(), loadStats()]);
+            }
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            loadTasks();
+            loadStats();
+            loadMessages();
+        });
+
+        /* Messages delivered to this member's phone number / email address */
+
+        const deliveryLabels = {
+            queued: 'Sending…',
+            sent: 'Delivered',
+            partial: 'Partly delivered',
+            failed: 'Delivery failed',
+            skipped: 'In-app only'
+        };
+
+        async function loadMessages() {
+            const list = document.getElementById('messages-list');
+            try {
+                const data = await apiFetch('/api/staff/messages');
+
+                if (!data.success) {
+                    list.innerHTML = `<div class="empty-state">${app.escapeHtml(data.message || 'Could not load messages')}</div>`;
+                    return;
+                }
+
+                if (data.messages.length === 0) {
+                    list.innerHTML = '<div class="empty-state"><strong>No messages yet</strong>When a task is assigned to you, the alert sent to your phone number and email address will appear here.</div>';
+                    return;
+                }
+
+                const sample = data.messages[0];
+                document.getElementById('messages-recipient').textContent =
+                    `Alerts are addressed to ${sample.recipient_phone || 'your phone'} and ${sample.recipient_email || 'your email'}`;
+
+                list.innerHTML = data.messages.map((m) => `
+                    <div class="msg-item ${m.read_status ? '' : 'unread'}">
+                        <div class="msg-meta">
+                            <span class="channel-pill">${app.escapeHtml(m.delivery_channel)}</span>
+                            <span class="delivery-pill ${deliveryLabels[m.delivery_status] ? m.delivery_status : 'skipped'}">${deliveryLabels[m.delivery_status] || 'In-app only'}</span>
+                            <span>${app.escapeHtml(m.recipient_phone || '—')}</span>
+                            <span>${app.escapeHtml(m.recipient_email || '—')}</span>
+                            <span>${app.formatDate(m.created_at)}</span>
+                        </div>
+                        <span class="msg-subject">${app.escapeHtml(m.subject)}</span>
+                        <div class="msg-body">${app.escapeHtml(m.body)}</div>
+                        ${m.read_status ? '' : `
+                            <div class="task-actions" style="margin-top: 0.6rem;">
+                                <button class="btn btn-secondary btn-small" data-read="${m.id}">Mark as read</button>
+                            </div>
+                        `}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                list.innerHTML = '<div class="empty-state">Could not load messages.</div>';
+            }
+        }
+
+        document.getElementById('messages-list').addEventListener('click', async (event) => {
+            const messageId = event.target.dataset.read;
+            if (!messageId) return;
+
+            event.target.disabled = true;
+            try {
+                const data = await apiFetch(`/api/staff/messages/${messageId}/read`, { method: 'PATCH' });
+                if (!data.success) app.showToast(data.message || 'Could not mark as read', 'error');
+            } catch (error) {
+                app.showToast('Could not mark as read', 'error');
+            } finally {
+                loadMessages();
+            }
+        });
+
+        app.initNotificationBell();
+        loadTasks();
+        loadStats();
+        loadMessages();
+    </script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plastic Polymer Testing Department - Complaint Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-content">
+            <div class="branding">
+                <div class="logo-placeholder">
+                    <img src="college-logo.png" alt="College Logo" class="college-logo">
+                </div>
+                <div class="header-text">
+                    <h1 class="dept-title">Plastic Polymer Testing Department</h1>
+                    <p class="dept-subtitle">Machine Complaint & Maintenance Portal</p>
+                </div>
+            </div>
+            <nav class="main-nav">
+                <a href="/" class="nav-link active">Home</a>
+                <a href="#features" class="nav-link">About</a>
+                <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="/login" class="nav-link btn-login">Login</a>
+                <a href="/register" class="nav-link btn-register">Register</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <div class="hero-text">
+                        <h2>Report Machine Problems. Ensure Smooth Laboratory Operations.</h2>
+                        <p>
+                            Welcome to the official Machine Complaint & Maintenance Management System for the
+                            Plastic Polymer Testing Department. Report equipment malfunctions, track maintenance
+                            status, and help keep our laboratories running efficiently.
+                        </p>
+                        <div class="hero-actions">
+                            <a href="/register" class="btn btn-primary">Submit a Complaint</a>
+                            <a href="/login" class="btn btn-secondary">Track Status</a>
+                        </div>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="total-complaints">-</div>
+                            <div class="stat-label">Total Complaints</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="pending-complaints">-</div>
+                            <div class="stat-label">In Progress</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="resolved-complaints">-</div>
+                            <div class="stat-label">Resolved</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="machines-count">-</div>
+                            <div class="stat-label">Machines Monitored</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <div class="container">
+                <h2 class="section-title">Why Use This Portal?</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 64 64" fill="currentColor">
+                                <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="3"/>
+                                <path d="M32 12 L32 32 L44 44" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <h3>Fast Reporting</h3>
+                        <p>Submit machine complaints in minutes with our streamlined form. Upload photos and get instant ticket confirmation.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 64 64" fill="currentColor">
+                                <rect x="12" y="16" width="40" height="36" rx="4" fill="none" stroke="currentColor" stroke-width="3"/>
+                                <path d="M20 28 L28 36 L44 20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h3>Real-Time Tracking</h3>
+                        <p>Track your complaint status from submission to resolution with complete transparency and updates.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 64 64" fill="currentColor">
+                                <circle cx="32" cy="24" r="10" fill="currentColor"/>
+                                <path d="M12 54 Q12 38 32 38 Q52 38 52 54" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <h3>Expert Response</h3>
+                        <p>Verified technicians and faculty members handle your complaints with professional maintenance services.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 64 64" fill="currentColor">
+                                <rect x="16" y="12" width="32" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="3"/>
+                                <line x1="24" y1="22" x2="40" y2="22" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                                <line x1="24" y1="32" x2="40" y2="32" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                                <line x1="24" y1="42" x2="36" y2="42" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <h3>Complete Records</h3>
+                        <p>Access full maintenance history, previous issues, and resolution details for all department equipment.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="how-it-works" id="how-it-works">
+            <div class="container">
+                <h2 class="section-title">How It Works</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>Register/Login</h3>
+                        <p>Create an account or login with your department credentials</p>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>Report Problem</h3>
+                        <p>Select machine, describe issue, upload photos</p>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>Get Ticket</h3>
+                        <p>Receive unique complaint ID for tracking</p>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <h3>Track & Resolve</h3>
+                        <p>Monitor status updates until resolution</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta">
+            <div class="container">
+                <div class="cta-content">
+                    <h2>Ready to Report a Machine Issue?</h2>
+                    <p>Join the Plastic Polymer Testing Department complaint management system today.</p>
+                    <div class="cta-actions">
+                        <a href="/register" class="btn btn-primary btn-large">Get Started</a>
+                        <a href="/login" class="btn btn-outline btn-large">Login</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-info">
+                <p>&copy; 2026 Plastic Polymer Testing Department</p>
+                <p>Machine Complaint & Maintenance Management System</p>
+            </div>
+            <div class="footer-links">
+                <a href="#features">About the Portal</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="/register">Report a Problem</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Chatbot Assistant -->
+    <div class="chatbot-trigger" id="chatbot-trigger">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/>
+        </svg>
+        <span>PPD Assistant</span>
+    </div>
+
+    <div class="chatbot-window hidden" id="chatbot-window">
+        <div class="chatbot-header">
+            <h3>PPD Assistant</h3>
+            <button class="chatbot-close" id="chatbot-close">✕</button>
+        </div>
+        <div class="chatbot-messages" id="chatbot-messages">
+            <div class="chatbot-message bot">
+                <p>Hello! I'm the PPD Assistant. How can I help you today?</p>
+                <div class="chatbot-suggestions">
+                    <button class="suggestion-btn" data-question="How do I submit a complaint?">How do I submit a complaint?</button>
+                    <button class="suggestion-btn" data-question="How can I track my complaint?">How can I track my complaint?</button>
+                    <button class="suggestion-btn" data-question="What information do I need?">What information do I need?</button>
+                    <button class="suggestion-btn" data-question="What does In Progress mean?">What does In Progress mean?</button>
+                </div>
+            </div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" id="chatbot-input-field" placeholder="Type your question...">
+            <button id="chatbot-send">Send</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Load homepage statistics (public, aggregate-only)
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats/public');
+                const data = await response.json();
+                if (!data.success) return;
+
+                const stats = data.statistics;
+                document.getElementById('total-complaints').textContent = stats.total_complaints;
+                document.getElementById('pending-complaints').textContent = stats.in_progress;
+                document.getElementById('resolved-complaints').textContent = stats.resolved;
+                document.getElementById('machines-count').textContent = stats.machines;
+            } catch (error) {
+                console.log('Statistics will load when server is running');
+            }
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>

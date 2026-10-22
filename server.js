@@ -1733,8 +1733,8 @@ app.get('/api/admin/users', auth, authorize(...ADMIN_ROLES), async (req, res) =>
 // accounts start as reporters, so this is how one of them becomes assignable.
 const SWITCHABLE_ROLES = ['student', 'teacher', 'staff', 'worker', 'technician', 'faculty'];
 
-app.patch('/api/admin/users/:id/role', auth, authorize(...ADMIN_ROLES), (req, res) => {
-  const user = db.users.find((u) => u.id === parseInt(req.params.id, 10));
+app.patch('/api/admin/users/:id/role', auth, authorize(...ADMIN_ROLES), async (req, res) => {
+  const user = await db.usersFindById(parseInt(req.params.id, 10));
   if (!user) {
     return res.status(404).json({ success: false, message: 'User not found' });
   }
@@ -1758,8 +1758,7 @@ app.patch('/api/admin/users/:id/role', auth, authorize(...ADMIN_ROLES), (req, re
   }
 
   const previousRole = user.role;
-  user.role = role;
-  persist();
+  await db.usersUpdate(user.id, { role });
 
   res.json({
     success: true,

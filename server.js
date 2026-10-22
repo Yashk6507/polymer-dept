@@ -30,8 +30,30 @@ const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
  * Persistence (PostgreSQL via database/db.js)
  * ------------------------------------------------------------------ */
 
-const { Database } = require('./database/db');
+const { Database, pool } = require('./database/db');
 const db = new Database();
+
+// Ensure database schema exists on startup
+async function ensureSchema() {
+  try {
+    // Check if complaints table exists
+    const { rows } = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'complaints'
+      );
+    `);
+
+    if (!rows[0].exists) {
+      console.log('[db] Schema not found, initializing database...');
+      await db.seed();
+      console.log('[db] Database initialized successfully');
+    }
+  } catch (err) {
+    console.error('[db] Schema initialization failed:', err.message);
+    throw err;
+  }
+}
 
 // No-op persist: writes happen immediately to PostgreSQL on each call.
 // Kept for callers/tests that reference it; tests inject their own persist.
@@ -2522,7 +2544,12 @@ function startServer(port = PORT) {
 }
 
 if (require.main === module) {
-  startServer();
+  ensureSchema().then(() => {
+    startServer();
+  }).catch((err) => {
+    console.error('[startup] Failed to initialize database:', err.message);
+    process.exit(1);
+  });
 }
 
 module.exports = {

@@ -117,6 +117,126 @@ class Database {
 
     await q('BEGIN');
     try {
+      // Ensure all tables exist (idempotent)
+      await q(`
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          email VARCHAR(255) UNIQUE NOT NULL,
+          password_hash VARCHAR(255) NOT NULL,
+          role VARCHAR(50) NOT NULL,
+          user_id VARCHAR(100),
+          phone VARCHAR(20),
+          department VARCHAR(255) DEFAULT 'Plastic Polymer Testing',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS locations (
+          id SERIAL PRIMARY KEY,
+          building VARCHAR(100),
+          hall VARCHAR(100),
+          room_number VARCHAR(50),
+          floor VARCHAR(20),
+          description TEXT
+        );
+        CREATE TABLE IF NOT EXISTS machines (
+          id SERIAL PRIMARY KEY,
+          machine_code VARCHAR(100) UNIQUE NOT NULL,
+          machine_name VARCHAR(255) NOT NULL,
+          manufacturer VARCHAR(255),
+          model VARCHAR(255),
+          category VARCHAR(100),
+          location_id INTEGER REFERENCES locations(id),
+          status VARCHAR(50) DEFAULT 'Operational',
+          installation_date DATE,
+          last_maintenance_date DATE,
+          next_maintenance_date DATE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS complaints (
+          id SERIAL PRIMARY KEY,
+          ticket_number VARCHAR(50) UNIQUE NOT NULL,
+          reporter_id INTEGER NOT NULL REFERENCES users(id),
+          complaint_type VARCHAR(100),
+          machine_id INTEGER REFERENCES machines(id),
+          location_id INTEGER REFERENCES locations(id),
+          general_location VARCHAR(255),
+          category VARCHAR(100) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          description TEXT NOT NULL,
+          priority VARCHAR(20) DEFAULT 'Medium',
+          status VARCHAR(50) DEFAULT 'Submitted',
+          problem_occurred_at TIMESTAMP,
+          machine_unusable BOOLEAN DEFAULT FALSE,
+          submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          resolved_at TIMESTAMP,
+          closed_at TIMESTAMP,
+          ai_suggested_priority VARCHAR(20),
+          ai_confidence_score INTEGER,
+          ai_analysis TEXT,
+          ai_reasons TEXT,
+          previous_ticket VARCHAR(50)
+        );
+        CREATE TABLE IF NOT EXISTS complaint_images (
+          id SERIAL PRIMARY KEY,
+          complaint_id INTEGER NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+          image_url VARCHAR(500) NOT NULL,
+          uploaded_by INTEGER NOT NULL REFERENCES users(id),
+          uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS assignments (
+          id SERIAL PRIMARY KEY,
+          complaint_id INTEGER NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+          assigned_to INTEGER NOT NULL REFERENCES users(id),
+          assigned_by INTEGER NOT NULL REFERENCES users(id),
+          assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          due_date DATE,
+          instructions TEXT,
+          completed_at TIMESTAMP,
+          completion_notes TEXT
+        );
+        CREATE TABLE IF NOT EXISTS complaint_updates (
+          id SERIAL PRIMARY KEY,
+          complaint_id INTEGER NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          old_status VARCHAR(50),
+          new_status VARCHAR(50),
+          comment TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS notifications (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          complaint_id INTEGER REFERENCES complaints(id) ON DELETE CASCADE,
+          title VARCHAR(255) NOT NULL,
+          message TEXT NOT NULL,
+          read_status BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS messages (
+          id SERIAL PRIMARY KEY,
+          recipient_id INTEGER,
+          recipient_name VARCHAR(255),
+          recipient_email VARCHAR(255),
+          recipient_phone VARCHAR(50),
+          delivery_channel VARCHAR(100),
+          delivery_status VARCHAR(50),
+          delivery_attempts JSONB,
+          delivered_at TIMESTAMP,
+          last_attempt_at TIMESTAMP,
+          retry_count INTEGER DEFAULT 0,
+          subject TEXT,
+          body TEXT,
+          kind VARCHAR(50),
+          complaint_id INTEGER REFERENCES complaints(id) ON DELETE SET NULL,
+          ticket_number VARCHAR(50),
+          read_status BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
       // Truncate everything (with cascade) for a clean seed
       await q('TRUNCATE TABLE messages, notifications, complaint_updates, complaint_images, assignments, complaints, machines, locations, users RESTART IDENTITY CASCADE');
 

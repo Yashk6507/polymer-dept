@@ -37,17 +37,25 @@ const db = new Database();
 async function ensureSchema() {
   try {
     // Check if complaints table exists
-    const { rows } = await pool.query(`
+    const { rows: tableRows } = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables
         WHERE table_schema = 'public' AND table_name = 'complaints'
       );
     `);
 
-    if (!rows[0].exists) {
+    if (!tableRows[0].exists) {
       console.log('[db] Schema not found, initializing database...');
       await db.seed();
       console.log('[db] Database initialized successfully');
+    } else {
+      // Tables exist but might be empty - check if users exist
+      const { rows: userRows } = await pool.query('SELECT COUNT(*) FROM users');
+      if (parseInt(userRows[0].count) === 0) {
+        console.log('[db] Tables exist but no users found, seeding...');
+        await db.seed();
+        console.log('[db] Database seeded successfully');
+      }
     }
   } catch (err) {
     console.error('[db] Schema initialization failed:', err.message);

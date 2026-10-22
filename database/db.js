@@ -177,7 +177,8 @@ class Database {
           ai_confidence_score INTEGER,
           ai_analysis TEXT,
           ai_reasons TEXT,
-          previous_ticket VARCHAR(50)
+          previous_ticket VARCHAR(50),
+          priority_auto_adjusted BOOLEAN DEFAULT FALSE
         );
         CREATE TABLE IF NOT EXISTS complaint_images (
           id SERIAL PRIMARY KEY,

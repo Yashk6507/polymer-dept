@@ -57,6 +57,13 @@ async function ensureSchema() {
         console.log('[db] Database seeded successfully');
       }
     }
+    // Ensure priority_auto_adjusted column exists (for existing tables)
+    try {
+      await pool.query('ALTER TABLE complaints ADD COLUMN IF NOT EXISTS priority_auto_adjusted BOOLEAN DEFAULT FALSE');
+      console.log('[db] Ensured priority_auto_adjusted column exists');
+    } catch (e) {
+      console.warn('[db] Could not add priority_auto_adjusted column:', e.message);
+    }
   } catch (err) {
     console.error('[db] Schema initialization failed:', err.message);
     throw err;

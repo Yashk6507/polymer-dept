@@ -57,7 +57,7 @@ async function ensureSchema() {
         console.log('[db] Database seeded successfully');
       }
     }
-    // Ensure priority_auto_adjusted column exists (for existing tables)
+    // Ensure priority_auto_adjusted column exists (for existing tables) - runs unconditionally
     try {
       await pool.query('ALTER TABLE complaints ADD COLUMN IF NOT EXISTS priority_auto_adjusted BOOLEAN DEFAULT FALSE');
       console.log('[db] Ensured priority_auto_adjusted column exists');

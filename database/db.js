@@ -259,6 +259,8 @@ class Database {
         ['Amit Patel', 'amit.patel@student.edu', hash('Password123'), 'student', 'STU2023001', '9876543214', 'Plastic Polymer Testing']);
 
       await q('COMMIT');
+      // Ensure priority_auto_adjusted column exists (for existing tables)
+      await q('ALTER TABLE complaints ADD COLUMN IF NOT EXISTS priority_auto_adjusted BOOLEAN DEFAULT FALSE');
       // Reset sequences explicitly after truncate restart identity
       console.log('[db] Seed complete');
     } catch (err) {

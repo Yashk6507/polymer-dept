@@ -17,6 +17,8 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 const UPLOAD_DIR = path.join(UPLOADS_DIR, 'complaints');
 const DATA_DIR = path.join(__dirname, 'data');
+// Overridable so the test suite can run against a throwaway store
+const DATA_FILE = process.env.DATA_FILE || path.join(DATA_DIR, 'store.json');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-only-secret-change-me';
 const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
@@ -27,58 +29,97 @@ const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
 });
 
 /* ------------------------------------------------------------------ *
- * Persistence (PostgreSQL via database/db.js)
+ * Persistence (JSON file store)
  * ------------------------------------------------------------------ */
 
-const { Database, pool } = require('./database/db');
-const db = new Database();
+const emptyStore = () => ({
+  users: [],
+  locations: [],
+  machines: [],
+  complaints: [],
+  complaintImages: [],
+  complaintUpdates: [],
+  assignments: [],
+  notifications: [],
+  messages: [],
+  counters: {
+    userId: 0,
+    locationId: 0,
+    machineId: 0,
+    complaintId: 0,
+    imageId: 0,
+    updateId: 0,
+    assignmentId: 0,
+    notificationId: 0,
+    messageId: 0
+  }
+});
 
-// Ensure database schema exists on startup
-async function ensureSchema() {
+let db = emptyStore();
+
+function seedStore() {
+  const hash = (password) => bcrypt.hashSync(password, 10);
+
+  db.locations = [
+    { id: 1, building: 'Main Block', hall: 'Polymer Testing Laboratory', room_number: '101', floor: 'Ground Floor', description: 'Primary testing facility' },
+    { id: 2, building: 'Main Block', hall: 'Material Testing Laboratory', room_number: '102', floor: 'Ground Floor', description: 'Material characterization lab' },
+    { id: 3, building: 'Main Block', hall: 'Processing Laboratory', room_number: '201', floor: 'First Floor', description: 'Polymer processing equipment' }
+  ];
+
+  db.machines = [
+    { id: 1, machine_code: 'UTM-001', machine_name: 'Universal Testing Machine', manufacturer: 'Instron', model: '5900 Series', category: 'Mechanical Testing', location_id: 1, status: 'Operational' },
+    { id: 2, machine_code: 'MFI-001', machine_name: 'Melt Flow Index Tester', manufacturer: 'Tinius Olsen', model: 'MP600', category: 'Rheology Testing', location_id: 1, status: 'Operational' },
+    { id: 3, machine_code: 'IZD-001', machine_name: 'Izod Impact Tester', manufacturer: 'Zwick/Roell', model: 'HIT50P', category: 'Impact Testing', location_id: 2, status: 'Operational' },
+    { id: 4, machine_code: 'EXT-001', machine_name: 'Extrusion Machine', manufacturer: 'Brabender', model: 'DSE 20/40', category: 'Processing', location_id: 3, status: 'Operational' },
+    { id: 5, machine_code: 'INJ-001', machine_name: 'Injection Moulding Machine', manufacturer: 'Haitian', model: 'MA600', category: 'Processing', location_id: 3, status: 'Out of Service' }
+  ];
+
+  // Staff, technicians and faculty are deliberately NOT seeded — the HOD adds the
+  // department's real staff from Admin Dashboard → Staff → Add Staff Member.
+  db.users = [
+    { id: 1, name: 'Dr. Rajesh Kumar', email: 'hod@polymer.edu', password_hash: hash('Admin@123'), role: 'hod', user_id: 'HOD001', phone: '9876543210', department: 'Plastic Polymer Testing', created_at: new Date().toISOString() },
+    { id: 2, name: 'Amit Patel', email: 'amit.patel@student.edu', password_hash: hash('Password123'), role: 'student', user_id: 'STU2023001', phone: '9876543214', department: 'Plastic Polymer Testing', created_at: new Date().toISOString() }
+  ];
+
+  db.counters = {
+    userId: 2,
+    locationId: 3,
+    machineId: 5,
+    complaintId: 0,
+    imageId: 0,
+    updateId: 0,
+    assignmentId: 0,
+    notificationId: 0,
+    messageId: 0
+  };
+}
+
+function loadStore() {
+  if (!fs.existsSync(DATA_FILE)) {
+    seedStore();
+    persist();
+    return;
+  }
   try {
-    // Check if complaints table exists
-    const { rows: tableRows } = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_name = 'complaints'
-      );
-    `);
-
-    if (!tableRows[0].exists) {
-      console.log('[db] Schema not found, initializing database...');
-      await db.seed();
-      console.log('[db] Database initialized successfully');
-    } else {
-      // Tables exist but might be empty - check if users exist
-      const { rows: userRows } = await pool.query('SELECT COUNT(*) FROM users');
-      if (parseInt(userRows[0].count) === 0) {
-        console.log('[db] Tables exist but no users found, seeding...');
-        await db.seed();
-        console.log('[db] Database seeded successfully');
-      }
-    }
-    // Ensure priority_auto_adjusted column exists (for existing tables) - runs unconditionally
-    try {
-      await pool.query('ALTER TABLE complaints ADD COLUMN IF NOT EXISTS priority_auto_adjusted BOOLEAN DEFAULT FALSE');
-      console.log('[db] Ensured priority_auto_adjusted column exists');
-    } catch (e) {
-      console.warn('[db] Could not add priority_auto_adjusted column:', e.message);
-    }
-  } catch (err) {
-    console.error('[db] Schema initialization failed:', err.message);
-    throw err;
+    const raw = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    db = { ...emptyStore(), ...raw, counters: { ...emptyStore().counters, ...(raw.counters || {}) } };
+  } catch (error) {
+    console.error('Could not read data store, starting from seed data:', error.message);
+    seedStore();
+    persist();
   }
 }
 
-// No-op persist: writes happen immediately to PostgreSQL on each call.
-// Kept for callers/tests that reference it; tests inject their own persist.
-const persist = () => Promise.resolve();
-
-// nextId is replaced by PostgreSQL SERIAL sequences — callers use the
-// returned row's id directly. This stub is only for backward compat.
-function nextId(key) {
-  throw new Error('nextId is not used with the PostgreSQL backend; use the RETURNING id from the insert.');
+function persist() {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2));
 }
+
+function nextId(key) {
+  db.counters[key] = (db.counters[key] || 0) + 1;
+  return db.counters[key];
+}
+
+loadStore();
 
 /* ------------------------------------------------------------------ *
  * Helpers
@@ -116,14 +157,8 @@ const publicUserSummary = (user) => (user ? { id: user.id, name: user.name, role
  * the "Assigned by" line resolve the name from the session on every request, so
  * whoever is actually logged in signs the alerts — never a fixed name.
  */
-const actingUser = async (req) => {
-  const user = await db.usersFindById(req.user.id);
-  return user || null;
-};
-const actingUserName = async (req) => {
-  const user = await actingUser(req);
-  return (user || {}).name || 'Department office';
-};
+const actingUser = (req) => db.users.find((u) => u.id === req.user.id) || null;
+const actingUserName = (req) => (actingUser(req) || {}).name || 'Department office';
 
 const generateTicketNumber = (id) => `PPD-${new Date().getFullYear()}-${String(id).padStart(6, '0')}`;
 
@@ -131,28 +166,34 @@ const generateTicketNumber = (id) => `PPD-${new Date().getFullYear()}-${String(i
 // which would otherwise overwrite `id`, `status` and `category`.
 function complaintView(complaint) {
   if (!complaint) return null;
+  const machine = db.machines.find((m) => m.id === complaint.machine_id);
+  const location = db.locations.find((l) => l.id === complaint.location_id);
+  const reporter = db.users.find((u) => u.id === complaint.reporter_id);
+
   return {
     ...complaint,
-    machine_name: complaint.machine_name || null,
-    machine_code: complaint.machine_code || null,
-    machine_status: complaint.machine_status || null,
-    building: complaint.building || null,
-    hall: complaint.hall || null,
-    room_number: complaint.room_number || null,
-    floor: complaint.floor || null,
+    machine_name: machine ? machine.machine_name : null,
+    machine_code: machine ? machine.machine_code : null,
+    machine_status: machine ? machine.status : null,
+    building: location ? location.building : null,
+    hall: location ? location.hall : null,
+    room_number: location ? location.room_number : null,
+    floor: location ? location.floor : null,
+    // Human readable location that also covers non-machine complaints
     location_display: complaint.complaint_type === 'Machine Related'
-      ? [complaint.building, complaint.hall, complaint.room_number && `Room ${complaint.room_number}`].filter(Boolean).join(', ')
+      ? [location?.building, location?.hall, location?.room_number && `Room ${location.room_number}`].filter(Boolean).join(', ')
       : complaint.general_location || 'Not specified',
-    reporter_name: complaint.reporter_name || 'Unknown',
-    reporter_role: complaint.reporter_role || null,
-    reporter_email: complaint.reporter_email || null,
-    reporter_user_id: complaint.reporter_user_id || null,
-    image_count: complaint.image_count || 0
+    reporter_name: reporter ? reporter.name : 'Unknown',
+    reporter_role: reporter ? reporter.role : null,
+    reporter_email: reporter ? reporter.email : null,
+    reporter_user_id: reporter ? reporter.user_id : null,
+    image_count: db.complaintImages.filter((img) => img.complaint_id === complaint.id).length
   };
 }
 
-async function createNotification(userId, complaintId, title, message) {
-  const row = await db.notificationsCreate({
+function createNotification(userId, complaintId, title, message) {
+  db.notifications.push({
+    id: nextId('notificationId'),
     user_id: userId,
     complaint_id: complaintId,
     title,
@@ -160,11 +201,11 @@ async function createNotification(userId, complaintId, title, message) {
     read_status: false,
     created_at: new Date().toISOString()
   });
-  return row;
 }
 
-async function recordUpdate(complaint, userId, oldStatus, newStatus, comment) {
-  const row = await db.complaintUpdatesCreate({
+function recordUpdate(complaint, userId, oldStatus, newStatus, comment) {
+  db.complaintUpdates.push({
+    id: nextId('updateId'),
     complaint_id: complaint.id,
     user_id: userId,
     old_status: oldStatus,
@@ -172,11 +213,10 @@ async function recordUpdate(complaint, userId, oldStatus, newStatus, comment) {
     comment,
     created_at: new Date().toISOString()
   });
-  return row;
 }
 
-async function isAssignedTo(complaintId, userId) {
-  return db.assignmentsExists(complaintId, userId);
+function isAssignedTo(complaintId, userId) {
+  return db.assignments.some((a) => a.complaint_id === complaintId && a.assigned_to === userId);
 }
 
 /* ------------------------------------------------------------------ *
@@ -724,14 +764,7 @@ async function deliverMessage(message, options = {}) {
   if (deliveredNow) message.delivered_at = new Date().toISOString();
   message.retry_count = message.retry_count || 0;
   message.last_attempt_at = new Date().toISOString();
-  await save(message);
-  await db.messagesUpdate(message.id, {
-    delivery_attempts: message.delivery_attempts,
-    delivery_status: message.delivery_status,
-    delivered_at: message.delivered_at,
-    last_attempt_at: message.last_attempt_at,
-    retry_count: message.retry_count
-  });
+  save();
 
   return message;
 }
@@ -877,7 +910,7 @@ const verifyGateways = () => Promise.all([verifyEmailGateway(), verifySmsGateway
  * staff profile can show exactly what was sent, to which contact and when.
  * Call deliverMessage() with the returned record to push it through the gateways.
  */
-async function recordMessage(recipient, { subject, body, kind, complaint }) {
+function recordMessage(recipient, { subject, body, kind, complaint }) {
   if (!recipient) return null;
 
   const email = recipient.email || null;
@@ -885,6 +918,7 @@ async function recordMessage(recipient, { subject, body, kind, complaint }) {
   const channel = email && phone ? 'Email + SMS' : email ? 'Email' : phone ? 'SMS' : 'No contact on file';
 
   const message = {
+    id: nextId('messageId'),
     recipient_id: recipient.id,
     recipient_name: recipient.name,
     recipient_email: email,
@@ -904,7 +938,8 @@ async function recordMessage(recipient, { subject, body, kind, complaint }) {
     created_at: new Date().toISOString()
   };
 
-  return db.messagesCreate(message);
+  db.messages.push(message);
+  return message;
 }
 
 // AI-powered priority analysis
@@ -938,9 +973,9 @@ function analyzeComplaintPriority(complaint) {
     reasons.push('Production/testing impact');
   }
 
-  // Use complaintView data for machine check (already joined in caller)
-  const machineName = complaint.machine_name || '';
-  if (machineName && ['universal testing machine', 'injection moulding', 'extrusion'].some((cm) => machineName.toLowerCase().includes(cm))) {
+  const criticalMachines = ['universal testing machine', 'injection moulding', 'extrusion'];
+  const machine = db.machines.find((m) => m.id === complaint.machine_id);
+  if (machine && criticalMachines.some((cm) => machine.machine_name.toLowerCase().includes(cm))) {
     score += 20;
     reasons.push('Critical equipment affected');
   }
@@ -950,9 +985,15 @@ function analyzeComplaintPriority(complaint) {
     reasons.push('Electrical/mechanical issue');
   }
 
-  // NOTE: previousComplaints check is now handled by the caller (async) since
-  // the analyze function is called synchronously during complaint creation.
-  // The machine_id-based prior complaints check has been removed for sync compatibility.
+  const previousComplaints = db.complaints.filter((c) =>
+    c.machine_id === complaint.machine_id &&
+    c.id !== complaint.id &&
+    c.status !== 'Closed'
+  );
+  if (complaint.machine_id && previousComplaints.length > 0) {
+    score += 15;
+    reasons.push(`${previousComplaints.length} open complaint(s) for same machine`);
+  }
 
   if (category.includes('calibration') || text.includes('calibration') || text.includes('accuracy') || text.includes('reading')) {
     score += 10;
@@ -982,7 +1023,7 @@ function analyzeComplaintPriority(complaint) {
  * Middleware
  * ------------------------------------------------------------------ */
 
-const auth = async (req, res, next) => {
+const auth = (req, res, next) => {
   try {
     const token = req.cookies.token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
     if (!token) {
@@ -993,7 +1034,7 @@ const auth = async (req, res, next) => {
     // The role is read from the store rather than trusted from the token: when an
     // administrator changes an account's role, or removes it, that must take effect
     // at once instead of whenever the holder happens to sign in again.
-    const account = await db.usersFindById(payload.id);
+    const account = db.users.find((u) => u.id === payload.id);
     if (!account) {
       return res.status(401).json({ success: false, message: 'This account no longer exists' });
     }
@@ -1072,11 +1113,12 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
     }
 
-    if (await db.usersExistsByEmail(normalizedEmail)) {
+    if (db.users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
       return res.status(400).json({ success: false, message: 'Email already registered' });
     }
 
     const newUser = {
+      id: nextId('userId'),
       name: String(name).trim(),
       email: normalizedEmail,
       password_hash: await bcrypt.hash(password, 10),
@@ -1087,12 +1129,13 @@ app.post('/api/auth/register', async (req, res) => {
       created_at: new Date().toISOString()
     };
 
-    const created = await db.usersCreate(newUser);
+    db.users.push(newUser);
+    persist();
 
-    const token = jwt.sign({ id: created.id, email: created.email, role: created.role }, JWT_SECRET, { expiresIn: JWT_EXPIRE });
+    const token = jwt.sign({ id: newUser.id, email: newUser.email, role: newUser.role }, JWT_SECRET, { expiresIn: JWT_EXPIRE });
     res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
-    res.status(201).json({ success: true, message: 'Registration successful', user: publicUser(created), token });
+    res.status(201).json({ success: true, message: 'Registration successful', user: publicUser(newUser), token });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ success: false, message: 'Registration failed' });
@@ -1106,7 +1149,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
 
-    const user = await db.usersFindByEmailCaseInsensitive(email);
+    const user = db.users.find((u) => u.email.toLowerCase() === String(email).trim().toLowerCase());
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
@@ -1126,8 +1169,8 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/auth/me', auth, async (req, res) => {
-  const user = await db.usersFindById(req.user.id);
+app.get('/api/auth/me', auth, (req, res) => {
+  const user = db.users.find((u) => u.id === req.user.id);
   if (!user) {
     return res.status(404).json({ success: false, message: 'User not found' });
   }
@@ -1137,8 +1180,8 @@ app.get('/api/auth/me', auth, async (req, res) => {
 // Lets the signed-in user set the name that appears on the alerts they send.
 // The name is read from the session on every request, so this is what makes
 // "whoever the HOD is" the actual signer of assignment emails.
-app.patch('/api/auth/profile', auth, async (req, res) => {
-  const user = await actingUser(req);
+app.patch('/api/auth/profile', auth, (req, res) => {
+  const user = actingUser(req);
   if (!user) {
     return res.status(404).json({ success: false, message: 'User not found' });
   }
@@ -1150,14 +1193,15 @@ app.patch('/api/auth/profile', auth, async (req, res) => {
     if (trimmed.length < 2) {
       return res.status(400).json({ success: false, message: 'Please provide your full name' });
     }
-    await db.usersUpdate(user.id, { name: trimmed });
+    user.name = trimmed;
   }
 
   if (phone !== undefined && String(phone).trim() && !isValidPhone(phone)) {
     return res.status(400).json({ success: false, message: 'Please provide a valid phone number (7-15 digits, optionally starting with +)' });
   }
-  if (phone !== undefined) await db.usersUpdate(user.id, { phone: phone ? String(phone).trim() : null });
+  if (phone !== undefined) user.phone = phone ? String(phone).trim() : null;
 
+  persist();
   res.json({ success: true, message: 'Profile updated', user: publicUser(user) });
 });
 
@@ -1170,24 +1214,36 @@ app.post('/api/auth/logout', (req, res) => {
  * Machine + location routes
  * ------------------------------------------------------------------ */
 
-app.get('/api/machines', auth, async (req, res) => {
-  const machines = await db.machinesWithLocation();
+app.get('/api/machines', auth, (req, res) => {
+  const machines = db.machines
+    .filter((m) => m.status !== 'Retired')
+    .map((machine) => {
+      const location = db.locations.find((l) => l.id === machine.location_id);
+      return {
+        ...machine,
+        building: location ? location.building : null,
+        hall: location ? location.hall : null,
+        room_number: location ? location.room_number : null,
+        floor: location ? location.floor : null
+      };
+    })
+    .sort((a, b) => a.machine_name.localeCompare(b.machine_name));
+
   res.json({ success: true, machines });
 });
 
-app.get('/api/machines/locations', auth, async (req, res) => {
-  const locations = await db.locationsAll();
-  res.json({ success: true, locations });
+app.get('/api/machines/locations', auth, (req, res) => {
+  res.json({ success: true, locations: db.locations });
 });
 
-app.get('/api/machines/:id', auth, async (req, res) => {
-  const machine = await db.machinesFindById(parseInt(req.params.id, 10));
+app.get('/api/machines/:id', auth, (req, res) => {
+  const machine = db.machines.find((m) => m.id === parseInt(req.params.id, 10));
   if (!machine) {
     return res.status(404).json({ success: false, message: 'Machine not found' });
   }
 
-  const location = machine.location_id ? await db.locationsFindById(machine.location_id) : null;
-  const related = await db.complaintsFindRelated(machine.id);
+  const location = db.locations.find((l) => l.id === machine.location_id);
+  const related = db.complaints.filter((c) => c.machine_id === machine.id);
 
   res.json({
     success: true,
@@ -1215,7 +1271,7 @@ app.get('/api/machines/:id', auth, async (req, res) => {
  * Complaint routes
  * ------------------------------------------------------------------ */
 
-app.post('/api/complaints', auth, upload.array('images', 5), async (req, res) => {
+app.post('/api/complaints', auth, upload.array('images', 5), (req, res) => {
   try {
     const {
       complaint_type,
@@ -1247,12 +1303,12 @@ app.post('/api/complaints', auth, upload.array('images', 5), async (req, res) =>
     let locationText = general_location ? String(general_location).trim() : null;
 
     if (type === 'Machine Related') {
-      const machine = await db.machinesFindById(parseInt(machine_id, 10));
+      const machine = db.machines.find((m) => m.id === parseInt(machine_id, 10));
       if (!machine) {
         return res.status(400).json({ success: false, message: 'Please select a valid machine' });
       }
-      const location = (await db.locationsFindById(parseInt(location_id, 10))) ||
-        (machine.location_id ? await db.locationsFindById(machine.location_id) : null);
+      const location = db.locations.find((l) => l.id === parseInt(location_id, 10)) ||
+        db.locations.find((l) => l.id === machine.location_id);
       if (!location) {
         return res.status(400).json({ success: false, message: 'Please select a valid location' });
       }
@@ -1263,8 +1319,9 @@ app.post('/api/complaints', auth, upload.array('images', 5), async (req, res) =>
       return res.status(400).json({ success: false, message: 'Please provide the location or area' });
     }
 
-    const now = new Date().toISOString();
     const complaint = {
+      id: nextId('complaintId'),
+      ticket_number: '',
       reporter_id: req.user.id,
       complaint_type: type,
       machine_id: finalMachineId,
@@ -1275,74 +1332,55 @@ app.post('/api/complaints', auth, upload.array('images', 5), async (req, res) =>
       description: String(description).trim(),
       priority: PRIORITIES.includes(priority) ? priority : 'Medium',
       status: 'Submitted',
-      problem_occurred_at: problem_occurred_at || now,
+      problem_occurred_at: problem_occurred_at || new Date().toISOString(),
+      // FormData submits "on" for a checked checkbox
       machine_unusable: machine_unusable === true || machine_unusable === 'true' || machine_unusable === 'on',
-      submitted_at: now,
-      updated_at: now,
+      submitted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       resolved_at: null,
       closed_at: null
     };
+    complaint.ticket_number = generateTicketNumber(complaint.id);
 
-    // We'll create the complaint first to get the ID, then generate ticket number
-    const created = await db.complaintsCreate({ ...complaint, ticket_number: '' });
-    created.ticket_number = generateTicketNumber(created.id);
-
-    // Get machine info for AI analysis if it's a machine-related complaint
-    let machine = null;
-    if (type === 'Machine Related' && created.machine_id) {
-      machine = await db.machinesFindById(created.machine_id);
-    }
-
-    const aiAnalysis = analyzeComplaintPriority({
-      ...created,
-      machine_name: machine?.machine_name,
-      machine_code: machine?.machine_code,
-      machine_status: machine?.status
-    });
-    created.ai_suggested_priority = aiAnalysis.suggestedPriority;
-    created.ai_confidence_score = aiAnalysis.confidenceScore;
-    created.ai_analysis = aiAnalysis.analysis;
-    created.ai_reasons = aiAnalysis.reasons;
+    const aiAnalysis = analyzeComplaintPriority(complaint);
+    complaint.ai_suggested_priority = aiAnalysis.suggestedPriority;
+    complaint.ai_confidence_score = aiAnalysis.confidenceScore;
+    complaint.ai_analysis = aiAnalysis.analysis;
+    complaint.ai_reasons = aiAnalysis.reasons;
 
     // Elevate the user supplied priority when the AI considers the issue more severe
     const rank = { Low: 1, Medium: 2, High: 3, Critical: 4 };
-    if (rank[aiAnalysis.suggestedPriority] > rank[created.priority]) {
-      created.priority = aiAnalysis.suggestedPriority;
-      created.priority_auto_adjusted = true;
+    if (rank[aiAnalysis.suggestedPriority] > rank[complaint.priority]) {
+      complaint.priority = aiAnalysis.suggestedPriority;
+      complaint.priority_auto_adjusted = true;
     }
 
-    // Update the complaint with AI analysis and ticket number
-    await db.complaintsUpdate(created.id, {
-      ticket_number: created.ticket_number,
-      ai_suggested_priority: created.ai_suggested_priority,
-      ai_confidence_score: created.ai_confidence_score,
-      ai_analysis: created.ai_analysis,
-      ai_reasons: created.ai_reasons,
-      priority: created.priority,
-      priority_auto_adjusted: created.priority_auto_adjusted
-    });
+    db.complaints.push(complaint);
 
     if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        await db.complaintImagesCreate({
-          complaint_id: created.id,
+      req.files.forEach((file) => {
+        db.complaintImages.push({
+          id: nextId('imageId'),
+          complaint_id: complaint.id,
           image_url: `/uploads/complaints/${file.filename}`,
           uploaded_by: req.user.id,
           uploaded_at: new Date().toISOString()
         });
-      }
+      });
     }
 
-    await recordUpdate(created, req.user.id, null, 'Submitted', 'Complaint submitted successfully');
+    recordUpdate(complaint, req.user.id, null, 'Submitted', 'Complaint submitted successfully');
 
-    await createNotification(
+    createNotification(
       req.user.id,
-      created.id,
+      complaint.id,
       'Complaint Submitted',
-      `Your complaint ${created.ticket_number} has been submitted successfully and is awaiting review.`
+      `Your complaint ${complaint.ticket_number} has been submitted successfully and is awaiting review.`
     );
 
-    res.status(201).json({ success: true, message: 'Complaint submitted successfully', complaint: complaintView(created) });
+    persist();
+
+    res.status(201).json({ success: true, message: 'Complaint submitted successfully', complaint: complaintView(complaint) });
   } catch (error) {
     console.error('Submit complaint error:', error);
     res.status(500).json({ success: false, message: 'Failed to submit complaint' });
@@ -1362,33 +1400,46 @@ app.get('/api/complaints/my', auth, (req, res) => {
   res.json({ success: true, complaints });
 });
 
-app.get('/api/complaints', auth, authorize(...COMPLAINT_VIEW_ROLES), async (req, res) => {
+app.get('/api/complaints', auth, authorize(...COMPLAINT_VIEW_ROLES), (req, res) => {
   const { status, priority, machine_id, search } = req.query;
 
-  const complaints = await db.complaintsWithFilters({
-    status,
-    priority,
-    machine_id: machine_id ? parseInt(machine_id, 10) : undefined,
-    search
-  });
+  const searchTerm = search ? String(search).toLowerCase() : null;
+
+  const complaints = db.complaints
+    .filter((c) => !status || c.status === status)
+    .filter((c) => !priority || c.priority === priority)
+    .filter((c) => !machine_id || c.machine_id === parseInt(machine_id, 10))
+    .map(complaintView)
+    .filter((c) => !searchTerm ||
+      (c.ticket_number || '').toLowerCase().includes(searchTerm) ||
+      (c.title || '').toLowerCase().includes(searchTerm) ||
+      (c.machine_name || '').toLowerCase().includes(searchTerm))
+    .sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
 
   res.json({ success: true, complaints });
 });
 
-app.get('/api/complaints/:id', auth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const detail = await db.complaintsWithDetails(id);
-  if (!detail) {
+app.get('/api/complaints/:id', auth, (req, res) => {
+  const complaint = db.complaints.find((c) => c.id === parseInt(req.params.id, 10));
+  if (!complaint) {
     return res.status(404).json({ success: false, message: 'Complaint not found' });
   }
-
-  const { complaint, machine, location, reporter, images, updates, assignment } = detail;
 
   const canView = complaint.reporter_id === req.user.id ||
     [...ADMIN_ROLES, ...REVIEW_ROLES, ...STAFF_ROLES].includes(req.user.role);
   if (!canView) {
     return res.status(403).json({ success: false, message: 'Access denied' });
   }
+
+  const images = db.complaintImages.filter((img) => img.complaint_id === complaint.id);
+  const updates = db.complaintUpdates
+    .filter((u) => u.complaint_id === complaint.id)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .map((u) => ({ ...u, user_name: (db.users.find((usr) => usr.id === u.user_id) || {}).name || 'System' }));
+
+  const assignment = db.assignments
+    .filter((a) => a.complaint_id === complaint.id)
+    .sort((a, b) => new Date(b.assigned_at) - new Date(a.assigned_at))[0];
 
   res.json({
     success: true,
@@ -1397,10 +1448,10 @@ app.get('/api/complaints/:id', auth, async (req, res) => {
     updates,
     assignment: assignment
       ? {
-          ...assignment,
-          assigned_to_name: (await db.usersFindById(assignment.assigned_to))?.name || null,
-          assigned_by_name: (await db.usersFindById(assignment.assigned_by))?.name || null
-        }
+        ...assignment,
+        assigned_to_name: publicUserSummary(db.users.find((u) => u.id === assignment.assigned_to))?.name || null,
+        assigned_by_name: publicUserSummary(db.users.find((u) => u.id === assignment.assigned_by))?.name || null
+      }
       : null
   });
 });
@@ -1409,58 +1460,46 @@ app.get('/api/complaints/:id', auth, async (req, res) => {
  * Dashboard routes
  * ------------------------------------------------------------------ */
 
-async function buildStatistics() {
-  const total_complaints = await db.complaintsCount();
-  const submitted = await db.complaintsCountByStatus('Submitted');
-  const under_review = await db.complaintsCountByStatus('Under Review');
-  const verified = await db.complaintsCountByStatus('Verified');
-  const assigned = await db.complaintsCountByStatus('Assigned');
-  const in_progress = await db.complaintsCountByStatus('In Progress');
-  const on_hold = await db.complaintsCountByStatus('On Hold');
-  const resolved = await db.complaintsCountByStatus('Resolved');
-  const closed = await db.complaintsCountByStatus('Closed');
-  const rejected = await db.complaintsCountByStatus('Rejected');
-  const high_priority = await db.complaintsCountByPriority();
+function buildStatistics() {
+  const countByStatus = (status) => db.complaints.filter((c) => c.status === status).length;
 
   return {
-    total_complaints,
-    submitted,
-    under_review,
-    verified,
-    assigned,
-    in_progress,
-    on_hold,
-    resolved,
-    closed,
-    rejected,
-    high_priority,
-    resolved_or_closed: resolved + closed
+    total_complaints: db.complaints.length,
+    submitted: countByStatus('Submitted'),
+    under_review: countByStatus('Under Review'),
+    verified: countByStatus('Verified'),
+    assigned: countByStatus('Assigned'),
+    in_progress: countByStatus('In Progress'),
+    on_hold: countByStatus('On Hold'),
+    resolved: countByStatus('Resolved'),
+    closed: countByStatus('Closed'),
+    rejected: countByStatus('Rejected'),
+    high_priority: db.complaints.filter((c) => c.priority === 'High' || c.priority === 'Critical').length,
+    resolved_or_closed: countByStatus('Resolved') + countByStatus('Closed')
   };
 }
 
 // Public, aggregate-only statistics used by the landing page
-app.get('/api/stats/public', async (req, res) => {
-  const stats = await buildStatistics();
-  const machines = await db.machinesCount();
-  const locations = await db.locationsCount();
+app.get('/api/stats/public', (req, res) => {
+  const stats = buildStatistics();
   res.json({
     success: true,
     statistics: {
       total_complaints: stats.total_complaints,
       in_progress: stats.in_progress + stats.assigned,
       resolved: stats.resolved_or_closed,
-      machines,
-      locations
+      machines: db.machines.length,
+      locations: db.locations.length
     }
   });
 });
 
-app.get('/api/dashboard/statistics', auth, async (req, res) => {
-  const statistics = await buildStatistics();
+app.get('/api/dashboard/statistics', auth, (req, res) => {
+  const statistics = buildStatistics();
 
   let userStats = null;
   if (!COMPLAINT_VIEW_ROLES.includes(req.user.role)) {
-    const mine = await db.complaintsFindByReporter(req.user.id);
+    const mine = db.complaints.filter((c) => c.reporter_id === req.user.id);
     userStats = {
       my_complaints: mine.length,
       my_pending: mine.filter((c) => !['Resolved', 'Closed', 'Rejected'].includes(c.status)).length,
@@ -1470,8 +1509,8 @@ app.get('/api/dashboard/statistics', auth, async (req, res) => {
 
   let staffStats = null;
   if (ASSIGNEE_ROLES.includes(req.user.role)) {
-    const mine = await db.assignmentsFindByAssignee(req.user.id);
-    const withComplaint = mine.map((a) => ({ assignment: a, complaint: a.complaint }))
+    const mine = db.assignments.filter((a) => a.assigned_to === req.user.id);
+    const withComplaint = mine.map((a) => ({ assignment: a, complaint: db.complaints.find((c) => c.id === a.complaint_id) }))
       .filter((entry) => entry.complaint);
 
     staffStats = {
@@ -1487,19 +1526,31 @@ app.get('/api/dashboard/statistics', auth, async (req, res) => {
     };
   }
 
-  const byCategory = await db.analyticsByCategory(new Date(0), new Date());
-  const byMachine = await db.analyticsByMachine(new Date(0), new Date());
-  const recentComplaints = await db.complaintsWithFilters({ limit: 5 });
-  const recentActivity = recentComplaints.map(complaintView);
+  const byCategory = Object.entries(
+    db.complaints.reduce((acc, c) => {
+      acc[c.category] = (acc[c.category] || 0) + 1;
+      return acc;
+    }, {})
+  ).map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count).slice(0, 10);
+
+  const byMachine = db.machines
+    .map((m) => ({ machine_name: m.machine_name, count: db.complaints.filter((c) => c.machine_id === m.id).length }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  const recentActivity = db.complaints
+    .slice()
+    .sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at))
+    .slice(0, 5)
+    .map(complaintView);
 
   res.json({ success: true, statistics, userStats, staffStats, byCategory, byMachine, recentActivity });
 });
 
-app.get('/api/admin/complaints/prioritized', auth, authorize(...ADMIN_ROLES, 'faculty'), async (req, res) => {
+app.get('/api/admin/complaints/prioritized', auth, authorize(...ADMIN_ROLES, 'faculty'), (req, res) => {
   const priorityOrder = { Critical: 4, High: 3, Medium: 2, Low: 1 };
 
-  const complaints = await db.complaintsWithFilters({});
-  const filtered = complaints
+  const complaints = db.complaints
     .filter((c) => ['Submitted', 'Under Review', 'Verified'].includes(c.status))
     .map(complaintView)
     .sort((a, b) => {
@@ -1508,64 +1559,63 @@ app.get('/api/admin/complaints/prioritized', auth, authorize(...ADMIN_ROLES, 'fa
       return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
     });
 
-  res.json({ success: true, complaints: filtered });
+  res.json({ success: true, complaints });
 });
 
-app.get('/api/dashboard/notifications', auth, async (req, res) => {
-  const notifications = await db.notificationsFindByUser(req.user.id);
-  const enriched = [];
-  for (const n of notifications) {
-    let ticket_number = null;
-    if (n.complaint_id) {
-      const c = await db.complaintsFindById(n.complaint_id);
-      ticket_number = c?.ticket_number || null;
-    }
-    enriched.push({ ...n, ticket_number });
-  }
+app.get('/api/dashboard/notifications', auth, (req, res) => {
+  const notifications = db.notifications
+    .filter((n) => n.user_id === req.user.id)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 50)
+    .map((n) => ({
+      ...n,
+      ticket_number: (db.complaints.find((c) => c.id === n.complaint_id) || {}).ticket_number || null
+    }));
 
   res.json({
     success: true,
-    notifications: enriched,
-    unread_count: enriched.filter((n) => !n.read_status).length
+    notifications,
+    unread_count: notifications.filter((n) => !n.read_status).length
   });
 });
 
-app.patch('/api/dashboard/notifications/:id/read', auth, async (req, res) => {
-  const notification = await db.notificationsFindByUser(req.user.id).then(arr => arr.find(n => n.id === parseInt(req.params.id, 10)));
+app.patch('/api/dashboard/notifications/:id/read', auth, (req, res) => {
+  const notification = db.notifications.find((n) => n.id === parseInt(req.params.id, 10) && n.user_id === req.user.id);
   if (!notification) {
     return res.status(404).json({ success: false, message: 'Notification not found' });
   }
-  await db.notificationsMarkRead(notification.id, req.user.id);
+  notification.read_status = true;
+  persist();
   res.json({ success: true, message: 'Notification marked as read' });
 });
 
-app.post('/api/dashboard/notifications/read-all', auth, async (req, res) => {
-  await db.notificationsMarkAllRead(req.user.id);
+app.post('/api/dashboard/notifications/read-all', auth, (req, res) => {
+  db.notifications.filter((n) => n.user_id === req.user.id).forEach((n) => { n.read_status = true; });
+  persist();
   res.json({ success: true, message: 'All notifications marked as read' });
 });
 
 // Tasks assigned to the signed-in staff member / technician
-app.get('/api/dashboard/tasks', auth, authorize(...ASSIGNEE_ROLES), async (req, res) => {
-  const mine = await db.assignmentsFindByAssignee(req.user.id);
-  const tasks = [];
-  for (const assignment of mine) {
-    const complaint = assignment.complaint;
-    if (!complaint) continue;
-    const assignedBy = await db.usersFindById(assignment.assigned_by);
-    tasks.push({
-      ...assignment,
-      ...complaintView(complaint),
-      assignment_id: assignment.id,
-      complaint_id: complaint.id,
-      complaint_status: complaint.status,
-      assigned_by_name: assignedBy?.name || null,
-      is_overdue: Boolean(assignment.due_date) &&
-        new Date(assignment.due_date) < new Date() &&
-        !['Resolved', 'Closed'].includes(complaint.status)
-    });
-  }
-
-  tasks.sort((a, b) => new Date(b.assigned_at) - new Date(a.assigned_at));
+app.get('/api/dashboard/tasks', auth, authorize(...ASSIGNEE_ROLES), (req, res) => {
+  const tasks = db.assignments
+    .filter((a) => a.assigned_to === req.user.id)
+    .map((assignment) => {
+      const complaint = db.complaints.find((c) => c.id === assignment.complaint_id);
+      if (!complaint) return null;
+      return {
+        ...assignment,
+        ...complaintView(complaint),
+        assignment_id: assignment.id,
+        complaint_id: complaint.id,
+        complaint_status: complaint.status,
+        assigned_by_name: publicUserSummary(db.users.find((u) => u.id === assignment.assigned_by))?.name || null,
+        is_overdue: Boolean(assignment.due_date) &&
+          new Date(assignment.due_date) < new Date() &&
+          !['Resolved', 'Closed'].includes(complaint.status)
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.assigned_at) - new Date(a.assigned_at));
 
   res.json({ success: true, tasks });
 });
@@ -1760,18 +1810,21 @@ app.post('/api/admin/complaints/:id/assign', auth, authorize(...ADMIN_ROLES, 'fa
   });
 });
 
-app.get('/api/admin/users', auth, authorize(...ADMIN_ROLES), async (req, res) => {
-  const users = await db.usersAll();
-  users.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  res.json({ success: true, users: users.map(publicUser) });
+app.get('/api/admin/users', auth, authorize(...ADMIN_ROLES), (req, res) => {
+  const users = db.users
+    .slice()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .map(publicUser);
+
+  res.json({ success: true, users });
 });
 
 // Roles an administrator may move an account into from the Staff tab. Self-registered
 // accounts start as reporters, so this is how one of them becomes assignable.
 const SWITCHABLE_ROLES = ['student', 'teacher', 'staff', 'worker', 'technician', 'faculty'];
 
-app.patch('/api/admin/users/:id/role', auth, authorize(...ADMIN_ROLES), async (req, res) => {
-  const user = await db.usersFindById(parseInt(req.params.id, 10));
+app.patch('/api/admin/users/:id/role', auth, authorize(...ADMIN_ROLES), (req, res) => {
+  const user = db.users.find((u) => u.id === parseInt(req.params.id, 10));
   if (!user) {
     return res.status(404).json({ success: false, message: 'User not found' });
   }
@@ -1795,7 +1848,8 @@ app.patch('/api/admin/users/:id/role', auth, authorize(...ADMIN_ROLES), async (r
   }
 
   const previousRole = user.role;
-  await db.usersUpdate(user.id, { role });
+  user.role = role;
+  persist();
 
   res.json({
     success: true,
@@ -1808,7 +1862,7 @@ app.patch('/api/admin/users/:id/role', auth, authorize(...ADMIN_ROLES), async (r
 const assignedWorkTypes = (assignments) => [...new Set(
   assignments
     .map((a) => {
-      const complaint = a.complaint;
+      const complaint = db.complaints.find((c) => c.id === a.complaint_id);
       return complaint && !['Resolved', 'Closed'].includes(complaint.status)
         ? complaint.complaint_type
         : null;
@@ -1816,19 +1870,18 @@ const assignedWorkTypes = (assignments) => [...new Set(
     .filter(Boolean)
 )];
 
-app.get('/api/admin/staff', auth, authorize(...REVIEW_ROLES), async (req, res) => {
-  const staff = await db.usersWithAssignmentsAndMessages();
-  const filtered = staff
+app.get('/api/admin/staff', auth, authorize(...REVIEW_ROLES), (req, res) => {
+  const staff = db.users
     .filter((u) => ASSIGNEE_ROLES.includes(u.role))
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((u) => {
-      const assignments = u.assignments || [];
+      const assignments = db.assignments.filter((a) => a.assigned_to === u.id);
       const open = assignments.filter((a) => {
         if (a.completed_at) return false;
-        const complaint = a.complaint;
+        const complaint = db.complaints.find((c) => c.id === a.complaint_id);
         return complaint && !['Resolved', 'Closed'].includes(complaint.status);
       });
-      const messages = u.messages || [];
+      const messages = db.messages.filter((m) => m.recipient_id === u.id);
 
       return {
         id: u.id,
@@ -1846,26 +1899,32 @@ app.get('/api/admin/staff', auth, authorize(...REVIEW_ROLES), async (req, res) =
       };
     });
 
-  res.json({ success: true, staff: filtered });
+  res.json({ success: true, staff });
 });
 
-const staffProfile = async (user) => {
-  const { rows: assignments } = await db.pool.query(
-    `SELECT a.*, c.id as complaint_id, c.ticket_number, c.machine_id, c.location_id, c.complaint_type, c.category,
-     c.title, c.description, c.priority, c.status, c.problem_occurred_at, c.machine_unusable,
-     c.ai_suggested_priority, c.ai_confidence_score, c.submitted_at, c.updated_at, c.resolved_at, c.closed_at,
-     m.machine_name, m.machine_code, m.status as machine_status,
-     l.building, l.hall, l.room_number, l.floor
-     FROM assignments a
-     JOIN complaints c ON a.complaint_id = c.id
-     LEFT JOIN machines m ON c.machine_id = m.id
-     LEFT JOIN locations l ON c.location_id = l.id
-     WHERE a.assigned_to = $1
-     ORDER BY a.assigned_at DESC`,
-    [user.id]
-  );
+const staffProfile = (user) => {
+  const assignments = db.assignments
+    .filter((a) => a.assigned_to === user.id)
+    .map((assignment) => {
+      const complaint = db.complaints.find((c) => c.id === assignment.complaint_id);
+      if (!complaint) return null;
+      return {
+        ...assignment,
+        ...complaintView(complaint),
+        assignment_id: assignment.id,
+        complaint_id: complaint.id,
+        complaint_status: complaint.status,
+        is_overdue: Boolean(assignment.due_date) &&
+          new Date(assignment.due_date) < new Date() &&
+          !['Resolved', 'Closed'].includes(complaint.status)
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.assigned_at) - new Date(a.assigned_at));
 
-  const messages = await db.messagesFindByRecipient(user.id);
+  const messages = db.messages
+    .filter((m) => m.recipient_id === user.id)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   return {
     profile: {
@@ -1934,7 +1993,7 @@ app.post('/api/admin/staff', auth, authorize(...ADMIN_ROLES), async (req, res) =
     if (!isValidEmail(normalizedEmail)) {
       return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
     }
-    if (await db.usersExistsByEmail(normalizedEmail)) {
+    if (db.users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
       return res.status(400).json({ success: false, message: 'Email already registered' });
     }
     if (String(password).length < 6) {
@@ -1948,6 +2007,7 @@ app.post('/api/admin/staff', auth, authorize(...ADMIN_ROLES), async (req, res) =
     }
 
     const newUser = {
+      id: nextId('userId'),
       name: String(name).trim(),
       email: normalizedEmail,
       password_hash: await bcrypt.hash(password, 10),
@@ -1958,8 +2018,9 @@ app.post('/api/admin/staff', auth, authorize(...ADMIN_ROLES), async (req, res) =
       created_at: new Date().toISOString()
     };
 
-    const created = await db.usersCreate(newUser);
-    res.status(201).json({ success: true, message: `${created.name} added to the staff list`, user: publicUser(created) });
+    db.users.push(newUser);
+    persist();
+    res.status(201).json({ success: true, message: `${newUser.name} added to the staff list`, user: publicUser(newUser) });
   } catch (error) {
     console.error('Add staff error:', error);
     res.status(500).json({ success: false, message: 'Could not add the staff member' });
@@ -2114,31 +2175,30 @@ const isRetryableNotification = (message) => {
   return false;
 };
 
-const outboxSummary = async () => {
-  const messages = await db.messagesAll();
+const outboxSummary = () => {
   const counts = { queued: 0, sent: 0, partial: 0, failed: 0, skipped: 0 };
-  messages.forEach((m) => {
+  db.messages.forEach((m) => {
     const key = counts[m.delivery_status] === undefined ? 'queued' : m.delivery_status;
     counts[key] += 1;
   });
   return {
-    total: messages.length,
+    total: db.messages.length,
     ...counts,
     // "pending" = recorded but no terminal gateway outcome yet
     pending: counts.queued,
-    retryable: messages.filter(isRetryableNotification).length
+    retryable: db.messages.filter(isRetryableNotification).length
   };
 };
 
 // Admin view of the whole outbox, so failed notifications are visible and fixable
-app.get('/api/notifications/outbox', auth, authorize(...ADMIN_ROLES, 'faculty'), async (req, res) => {
+app.get('/api/notifications/outbox', auth, authorize(...ADMIN_ROLES, 'faculty'), (req, res) => {
   const limit = Math.min(parseInt(req.query.limit || '50', 10) || 50, 200);
 
-  const messages = (await db.messagesAll())
+  const messages = [...db.messages]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, limit);
 
-  res.json({ success: true, summary: await outboxSummary(), messages });
+  res.json({ success: true, summary: outboxSummary(), messages });
 });
 
 /**
@@ -2147,7 +2207,7 @@ app.get('/api/notifications/outbox', auth, authorize(...ADMIN_ROLES, 'faculty'),
  * who has already received that channel.
  */
 app.post('/api/notifications/messages/:id/retry', auth, authorize(...ADMIN_ROLES), async (req, res) => {
-  const message = await db.messagesFindById(parseInt(req.params.id, 10));
+  const message = db.messages.find((m) => m.id === parseInt(req.params.id, 10));
   if (!message) {
     return res.status(404).json({ success: false, message: 'Notification not found' });
   }
@@ -2167,7 +2227,7 @@ app.post('/api/notifications/messages/:id/retry', auth, authorize(...ADMIN_ROLES
 
 // Retry every notification that still has an undelivered channel
 app.post('/api/notifications/retry-failed', auth, authorize(...ADMIN_ROLES), async (req, res) => {
-  const retryable = (await db.messagesAll()).filter(isRetryableNotification);
+  const retryable = db.messages.filter(isRetryableNotification);
 
   try {
     for (const message of retryable) {
@@ -2178,7 +2238,7 @@ app.post('/api/notifications/retry-failed', auth, authorize(...ADMIN_ROLES), asy
       success: true,
       message: `Retried ${retryable.length} notification${retryable.length === 1 ? '' : 's'}`,
       attempted: retryable.length,
-      summary: await outboxSummary()
+      summary: outboxSummary()
     });
   } catch (error) {
     console.error('Bulk notification retry error:', redact(error.message));
@@ -2187,9 +2247,10 @@ app.post('/api/notifications/retry-failed', auth, authorize(...ADMIN_ROLES), asy
 });
 
 // Messages addressed to the signed-in user (delivered to their phone number / email)
-app.get('/api/staff/messages', auth, async (req, res) => {
-  const messages = await db.messagesFindByRecipient(req.user.id);
-  messages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+app.get('/api/staff/messages', auth, (req, res) => {
+  const messages = db.messages
+    .filter((m) => m.recipient_id === req.user.id)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   res.json({
     success: true,
@@ -2198,12 +2259,13 @@ app.get('/api/staff/messages', auth, async (req, res) => {
   });
 });
 
-app.patch('/api/staff/messages/:id/read', auth, async (req, res) => {
-  const message = await db.messagesFindById(parseInt(req.params.id, 10));
-  if (!message || message.recipient_id !== req.user.id) {
+app.patch('/api/staff/messages/:id/read', auth, (req, res) => {
+  const message = db.messages.find((m) => m.id === parseInt(req.params.id, 10) && m.recipient_id === req.user.id);
+  if (!message) {
     return res.status(404).json({ success: false, message: 'Message not found' });
   }
-  await db.messagesMarkRead(message.id, req.user.id);
+  message.read_status = true;
+  persist();
   res.json({ success: true, message: 'Message marked as read' });
 });
 
@@ -2537,7 +2599,7 @@ function startServer(port = PORT) {
     console.log(`\n🚀 Polymer Department Complaint System running!`);
     console.log(`📍 URL: http://localhost:${port}`);
     console.log(`📚 Department: Plastic Polymer Testing`);
-    console.log(`💾 Database: PostgreSQL`);
+    console.log(`💾 Data file: ${DATA_FILE}`);
     console.log(`\n🔐 Demo credentials:`);
     console.log(`   HOD:     hod@polymer.edu / Admin@123`);
     console.log(`   Student: amit.patel@student.edu / Password123`);
@@ -2559,12 +2621,7 @@ function startServer(port = PORT) {
 }
 
 if (require.main === module) {
-  ensureSchema().then(() => {
-    startServer();
-  }).catch((err) => {
-    console.error('[startup] Failed to initialize database:', err.message);
-    process.exit(1);
-  });
+  startServer();
 }
 
 module.exports = {
@@ -2590,5 +2647,8 @@ module.exports = {
   outboxSummary,
   isRetryableNotification,
   httpRequestForm,
-  getMailTransport
+  getMailTransport,
+  loadStore,
+  getStore: () => db,
+  setStore: (next) => { db = next; }
 };

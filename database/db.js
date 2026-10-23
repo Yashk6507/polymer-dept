@@ -588,8 +588,8 @@ class Database {
         ticket_number, reporter_id, complaint_type, machine_id, location_id, general_location,
         category, title, description, priority, status, problem_occurred_at, machine_unusable,
         submitted_at, updated_at, resolved_at, closed_at, ai_suggested_priority, ai_confidence_score,
-        ai_analysis, ai_reasons, previous_ticket
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+        ai_analysis, ai_reasons, previous_ticket, priority_auto_adjusted
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
        RETURNING *`,
       [
         complaint.ticket_number, complaint.reporter_id, complaint.complaint_type,
@@ -598,7 +598,8 @@ class Database {
         complaint.problem_occurred_at, complaint.machine_unusable,
         complaint.submitted_at, complaint.updated_at, complaint.resolved_at, complaint.closed_at,
         complaint.ai_suggested_priority, complaint.ai_confidence_score,
-        complaint.ai_analysis, complaint.ai_reasons, complaint.previous_ticket
+        complaint.ai_analysis, complaint.ai_reasons, complaint.previous_ticket,
+        complaint.priority_auto_adjusted ?? false
       ]
     );
     return rows[0];
